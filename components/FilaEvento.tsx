@@ -31,7 +31,7 @@ export function FilaEvento({ evento }: { evento: Evento }) {
         <div className="text-[11px] leading-none text-niebla">
           {sinTraslado ? 'empieza' : 'salí'}
         </div>
-        <div className="expandida mt-1 text-2xl font-bold leading-none">
+        <div className="mt-1 text-2xl font-bold leading-none">
           {horaSalida(evento)}
         </div>
       </div>

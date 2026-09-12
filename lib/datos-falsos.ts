@@ -30,7 +30,7 @@ export const EVENTOS: Evento[] = [
     minutos_traslado: 0,
     minutos_margen: 0,
     aviso_salida_enviado_en: null,
-    arrancado_en: '2026-09-14T07:02:00-04:00',
+    arrancado_en: null,
     completado_en: '2026-09-14T07:38:00-04:00',
   },
   {

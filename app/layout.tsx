@@ -3,7 +3,7 @@ import { Archivo } from 'next/font/google';
 import './globals.css';
 
 // Una sola familia para toda la app. El eje de ancho (wdth) es el que usa
-// `.expandida` para las horas.
+// `.expandida`, reservado para el número grande de la cuenta regresiva.
 const archivo = Archivo({
   subsets: ['latin'],
   axes: ['wdth'],
@@ -17,7 +17,6 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0E1A1F',
   width: 'device-width',
   initialScale: 1,
 };

@@ -29,10 +29,6 @@ export default function Dia() {
           ))}
         </ol>
       )}
-
-      <p className="mt-8 text-xs leading-relaxed text-niebla">
-        la hora de salida se calcula: inicio − traslado − margen, tomados del lugar.
-      </p>
     </main>
   );
 }

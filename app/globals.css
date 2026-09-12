@@ -32,9 +32,31 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Archivo Expanded para las horas: es un reloj, que se vea como un reloj. */
+/* Archivo Expanded, solo para el número grande de la cuenta regresiva.
+   Las horas de la lista van en el ancho normal. */
 .expandida {
   font-stretch: 125%;
+}
+
+/* Cifras de ancho fijo.
+   La build de Archivo que sirve Google Fonts no trae la feature `tnum`, así
+   que `font-variant-numeric: tabular-nums` no hace nada: el 0 es más angosto
+   que el 8 y el número baila cada vez que cambia un dígito. Sin cambiar de
+   tipografía, la solución es dar a cada dígito su propia caja de ancho fijo y
+   centrarlo adentro. Lo usa <Cifras>. */
+.cifras {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.cifras > .cifra {
+  display: inline-block;
+  /* 1ch es el ancho del glifo "0". En Archivo el dígito más ancho mide entre
+     0.96ch y 1.04ch según el peso y el ancho (medido en los tres pesos que
+     usa la app); 1.05ch entra en todos los casos sin dejar huecos visibles.
+     Si algún tamaño queda apretado o suelto, se ajusta `--ancho-cifra`. */
+  width: var(--ancho-cifra, 1.05ch);
+  text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
