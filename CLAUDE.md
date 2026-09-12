@@ -68,4 +68,15 @@ de este proyecto no es que quede mal hecho, es que crezca para siempre y nunca s
 ⟨actualizar a medida que avanza⟩
 
 **Siguiente:** correr el esquema en Supabase y levantar la vista del día con datos de prueba.
- ## Plan / El plan de diseño, la paleta y la escalera de tareas están en docs/plan.md. Hay que leerlo siempre junto con este archivo. Commit directo a main.
+
+---
+
+## Plan
+
+El plan de diseño, la paleta, la tipografía y la escalera de tareas están en
+`docs/plan.md`. Hay que leerlo **siempre** junto con este archivo, antes de
+escribir cualquier código.
+
+El estado de avance está en `docs/estado.md`. Toda sesión lo actualiza como
+último paso antes de cerrar su PR.
+
