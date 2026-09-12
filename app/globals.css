@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* La paleta de docs/plan.md. Cada color significa una sola cosa.
+   `salida` (#FF6B35) queda reservado para la cuenta regresiva del paso 2:
+   no se usa en ningún otro lugar de la app. */
+@theme {
+  --color-abismo: #0e1a1f;
+  --color-marea: #16262c;
+  --color-bruma: #1e333a;
+  --color-espuma: #eaf2f1;
+  --color-niebla: #7c9499;
+
+  --color-salida: #ff6b35;
+  --color-racha-viva: #3fbf9f;
+  --color-en-riesgo: #e6a93c;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  /* Degradado vertical muy sutil: hondura sin tarjetas ni sombras. */
+  background-color: var(--color-abismo);
+  background-image: linear-gradient(to bottom, var(--color-abismo), #080f13);
+  background-attachment: fixed;
+  color: var(--color-espuma);
+  /* Cifras tabulares obligatorias: sin esto los números bailan. */
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Archivo Expanded para las horas: es un reloj, que se vea como un reloj. */
+.expandida {
+  font-stretch: 125%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
