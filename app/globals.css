@@ -59,6 +59,22 @@ body {
   text-align: center;
 }
 
+/* La única animación de la app: el número cuando ya pasó la hora de salir.
+   Lento a propósito, no es una alarma. */
+@keyframes parpadeo {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.parpadeo {
+  animation: parpadeo 2.4s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -66,5 +82,11 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* Sin parpadeo: el número queda fijo y entero. El color naranja ya avisa. */
+  .parpadeo {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }

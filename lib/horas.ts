@@ -3,7 +3,7 @@ import type { Evento } from './tipos';
 const MINUTOS_DEL_DIA = 24 * 60;
 
 /** 'HH:MM:SS' -> minutos desde medianoche */
-function aMinutos(hora: string): number {
+export function minutosDe(hora: string): number {
   const [h, m] = hora.split(':');
   return Number(h) * 60 + Number(m);
 }
@@ -18,7 +18,7 @@ function aTexto(minutos: number): string {
 
 /** 'HH:MM:SS' -> 'HH:MM', para mostrar */
 export function hhmm(hora: string): string {
-  return aTexto(aMinutos(hora));
+  return aTexto(minutosDe(hora));
 }
 
 /**
@@ -30,7 +30,12 @@ export function hhmm(hora: string): string {
  * Igual que en Postgres, si la resta cruza la medianoche da la vuelta.
  */
 export function horaSalida(e: Evento): string {
-  return aTexto(aMinutos(e.hora_inicio) - (e.minutos_traslado + e.minutos_margen));
+  return aTexto(minutosDe(e.hora_inicio) - (e.minutos_traslado + e.minutos_margen));
+}
+
+/** La hora del sistema en minutos desde medianoche. */
+export function minutosAhora(ahora: Date): number {
+  return ahora.getHours() * 60 + ahora.getMinutes();
 }
 
 /** '2026-09-14' -> 'lunes 14 de septiembre' */

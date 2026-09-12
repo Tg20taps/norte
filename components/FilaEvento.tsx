@@ -3,8 +3,9 @@ import { hhmm, horaSalida } from '@/lib/horas';
 import type { Evento } from '@/lib/tipos';
 
 /**
- * Una fila del día. El número de la izquierda es la hora de salida, que es la
- * razón de existir de la app; la hora de llegada va abajo, apagada.
+ * Una fila del día. Desde el paso 2 la lista va debajo de la cuenta regresiva y
+ * apagada: el héroe es el número, no la agenda. El número de la izquierda es la
+ * hora de salida; el rango y el lugar van abajo.
  *
  * Las filas se separan con espacio, peso y el fondo `marea`. Sin tarjetas
  * redondeadas ni sombras.
@@ -37,9 +38,7 @@ export function FilaEvento({ evento }: { evento: Evento }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className={`font-semibold leading-tight ${hecho ? 'text-niebla' : 'text-espuma'}`}>
-          {evento.titulo}
-        </p>
+        <p className="font-semibold leading-tight text-niebla">{evento.titulo}</p>
         <p className="mt-1 text-sm leading-snug text-niebla">{secundaria}</p>
         {evento.detalle ? (
           <p className="mt-0.5 text-sm leading-snug text-niebla">{evento.detalle}</p>
