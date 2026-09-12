@@ -283,3 +283,120 @@ create table suscripcion_push (
 -- Mensaje del aviso: "SALÍ AHORA para <titulo>. Llegada <hora_inicio>."
 -- Nunca "tenés <titulo> a las <hora_inicio>". Esa diferencia es toda la app.
 -- =====================================================================
+
+
+-- =====================================================================
+-- FINANZAS — versión mínima
+--
+-- Esto NO es una app de presupuesto. No hay categorías, no hay reportes,
+-- no hay que anotar cada gasto chico. Lo que resuelve es una sola pregunta:
+--
+--        ¿cuánta plata me queda por día hasta el próximo sueldo?
+--
+-- Ese número es el héroe de esta pantalla, igual que la cuenta regresiva
+-- lo es de la pantalla del día. Si aparece un gráfico de torta acá,
+-- alguien se equivocó de app.
+--
+-- =====================================================================
+
+create type flujo as enum ('ingreso','gasto');
+
+
+-- ---------------------------------------------------------------------
+-- Lo que ya sabes que pasa todos los meses. Se carga una vez.
+-- Arriendo, internet, micro, el sueldo del Walmart.
+-- Misma lógica de vigencia que los bloques: no se borra, se cierra.
+-- ---------------------------------------------------------------------
+create table movimiento_fijo (
+  id             serial primary key,
+  tipo           flujo   not null,
+  concepto       text    not null,
+  monto          numeric not null check (monto > 0),
+  dia_del_mes    int     check (dia_del_mes between 1 and 31),
+  vigente_desde  date    not null default current_date,
+  vigente_hasta  date
+);
+
+
+-- ---------------------------------------------------------------------
+-- Lo que realmente pasó. Los fijos se materializan solos con un cron;
+-- los sueltos se anotan a mano, y solo los que valen la pena.
+-- ---------------------------------------------------------------------
+create table movimiento (
+  id        serial primary key,
+  fecha     date    not null default current_date,
+  tipo      flujo   not null,
+  concepto  text    not null,
+  monto     numeric not null check (monto > 0),
+  fijo_id   int     references movimiento_fijo(id),   -- null = gasto suelto
+  nota      text
+);
+
+create index on movimiento (fecha);
+
+
+-- ---------------------------------------------------------------------
+-- Próximo ingreso: la fecha contra la que se mide todo.
+-- ---------------------------------------------------------------------
+create or replace function proximo_ingreso()
+returns date language sql stable as $$
+  select min(fecha) from (
+    select make_date(
+             extract(year  from d)::int,
+             extract(month from d)::int,
+             least(f.dia_del_mes,
+                   extract(day from (date_trunc('month', d) + interval '1 month - 1 day'))::int)
+           ) as fecha
+    from movimiento_fijo f
+    cross join lateral (values (current_date), (current_date + interval '1 month')) as g(d)
+    where f.tipo = 'ingreso'
+      and f.dia_del_mes is not null
+      and (f.vigente_hasta is null or f.vigente_hasta >= current_date)
+  ) x
+  where fecha > current_date;
+$$;
+
+
+-- ---------------------------------------------------------------------
+-- LA VISTA. Esto es toda la pantalla de finanzas.
+-- ---------------------------------------------------------------------
+create or replace view plata_disponible as
+with mes as (
+  select
+    coalesce(sum(monto) filter (where tipo = 'ingreso'), 0) as entro,
+    coalesce(sum(monto) filter (where tipo = 'gasto'),   0) as salio
+  from movimiento
+  where fecha >= date_trunc('month', current_date)
+),
+pendiente as (
+  select coalesce(sum(monto), 0) as gastos_por_venir
+  from movimiento_fijo f
+  where f.tipo = 'gasto'
+    and (f.vigente_hasta is null or f.vigente_hasta >= current_date)
+    and f.dia_del_mes > extract(day from current_date)
+)
+select
+  m.entro,
+  m.salio,
+  p.gastos_por_venir,
+  m.entro - m.salio - p.gastos_por_venir           as queda,
+  proximo_ingreso()                                as proximo_sueldo,
+  greatest(proximo_ingreso() - current_date, 1)    as dias_restantes,
+  round(
+    (m.entro - m.salio - p.gastos_por_venir)
+    / greatest(proximo_ingreso() - current_date, 1)
+  )                                                as por_dia
+from mes m, pendiente p;
+
+
+-- =====================================================================
+-- La pantalla muestra, en este orden:
+--
+--   1. por_dia         <- gigante. "$X por día"
+--   2. queda y dias_restantes, chico debajo
+--   3. gastos_por_venir, para que no te agarre de sorpresa el arriendo
+--   4. un botón para anotar un gasto suelto, y nada más
+--
+-- El ahorro NO va acá: va como una `meta` de clase 'monto', con sus
+-- aportes. Así la racha de aportar se cuenta igual que cualquier otra.
+-- =====================================================================
