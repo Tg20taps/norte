@@ -123,3 +123,44 @@ export function faseDeFila(evento: Evento, ahora: number): Fase | null {
   if (minutosDe(evento.hora_inicio) <= ahora) return null;
   return faseDe(minutosDe(horaSalida(evento)) - ahora);
 }
+
+/**
+ * Dónde estás parado en el día, para la línea de contexto de arriba del héroe.
+ *
+ *   en_curso       estás dentro de un evento
+ *   libre          no hay nada en curso pero todavía queda algo por empezar
+ *   nada_mas_hoy   el día se terminó
+ */
+export type Contexto =
+  | { tipo: 'en_curso'; evento: Evento }
+  | { tipo: 'en_camino'; proximo: Evento }
+  | { tipo: 'libre'; proximo: Evento }
+  | { tipo: 'nada_mas_hoy'; manana: Evento };
+
+export function contextoDe(eventos: Evento[], ahora: number): Contexto | null {
+  if (eventos.length === 0) return null;
+
+  const enCurso = eventos.find(
+    (e) =>
+      e.hora_fin !== null &&
+      minutosDe(e.hora_inicio) <= ahora &&
+      ahora < minutosDe(e.hora_fin)
+  );
+  if (enCurso) return { tipo: 'en_curso', evento: enCurso };
+
+  const porEmpezar = [...eventos]
+    .filter((e) => minutosDe(e.hora_inicio) > ahora)
+    .sort((a, b) => minutosDe(a.hora_inicio) - minutosDe(b.hora_inicio))[0];
+  if (porEmpezar) {
+    // Si la hora de salida ya pasó no estás libre, estás (o deberías estar) en
+    // la micro. Decirle "libre" sería mentirle justo cuando más importa.
+    const yaSalio = minutosDe(horaSalida(porEmpezar)) <= ahora;
+    return { tipo: yaSalio ? 'en_camino' : 'libre', proximo: porEmpezar };
+  }
+
+  // El día se terminó: lo que sigue es el primer evento del día siguiente.
+  const manana = [...eventos].sort(
+    (a, b) => minutosDe(a.hora_inicio) - minutosDe(b.hora_inicio)
+  )[0];
+  return { tipo: 'nada_mas_hoy', manana };
+}

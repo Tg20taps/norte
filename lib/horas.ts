@@ -9,7 +9,7 @@ export function minutosDe(hora: string): number {
 }
 
 /** minutos desde medianoche -> 'HH:MM' */
-function aTexto(minutos: number): string {
+export function hhmmDeMinutos(minutos: number): string {
   const dentroDelDia = ((minutos % MINUTOS_DEL_DIA) + MINUTOS_DEL_DIA) % MINUTOS_DEL_DIA;
   const h = Math.floor(dentroDelDia / 60);
   const m = dentroDelDia % 60;
@@ -18,7 +18,7 @@ function aTexto(minutos: number): string {
 
 /** 'HH:MM:SS' -> 'HH:MM', para mostrar */
 export function hhmm(hora: string): string {
-  return aTexto(minutosDe(hora));
+  return hhmmDeMinutos(minutosDe(hora));
 }
 
 /**
@@ -30,7 +30,7 @@ export function hhmm(hora: string): string {
  * Igual que en Postgres, si la resta cruza la medianoche da la vuelta.
  */
 export function horaSalida(e: Evento): string {
-  return aTexto(minutosDe(e.hora_inicio) - (e.minutos_traslado + e.minutos_margen));
+  return hhmmDeMinutos(minutosDe(e.hora_inicio) - (e.minutos_traslado + e.minutos_margen));
 }
 
 /** La hora del sistema en minutos desde medianoche. */

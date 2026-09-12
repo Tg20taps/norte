@@ -109,28 +109,37 @@ Imperativo y directo, en minúscula. `salí ahora`, no `Es momento de partir`.
 Una tarea = una sesión = un PR que se lee en cinco minutos. En orden. No saltarse
 pasos ni combinar dos.
 
-1. **Vista del día, datos falsos.** Next.js + TS + Tailwind. Lista del día con datos
-   hardcodeados con la forma de `evento`. Sin Supabase, sin auth, sin push.
-2. **La cuenta regresiva.** El héroe de arriba, calculando contra la hora del sistema.
-   Todavía con datos falsos.
-3. **Supabase conectado.** Correr `schema.sql`, leer `evento` de verdad. Las claves
-   por variables de entorno, nunca en el repo.
-4. **Materializar el día.** La función que arma los `evento` de hoy desde
+**El esqueleto ya está armado.** La navegación existe desde el paso 2: barra fija
+abajo con cuatro secciones —Hoy, Rachas, Metas y Plata— y las tres últimas son
+marcadores de posición que dicen en qué paso se construyen. Así que de acá en
+adelante ningún paso inventa navegación: **cada paso llena su sección**, que va
+anotada al lado. Una sección vacía se ve vacía y eso está bien; lo que no puede
+pasar es que la app crezca de ancho sin que nadie lo haya decidido.
+
+1. **Vista del día, datos falsos.** → Hoy. Next.js + TS + Tailwind. Lista del
+   día con datos hardcodeados con la forma de `evento`. Sin Supabase, sin auth,
+   sin push.
+2. **La cuenta regresiva.** → Hoy, más la navegación de toda la app. El héroe de
+   arriba, calculando contra la hora del sistema. Todavía con datos falsos.
+3. **Supabase conectado.** → Hoy. Correr `schema.sql`, leer `evento` de verdad.
+   Las claves por variables de entorno, nunca en el repo.
+4. **Materializar el día.** → Hoy. La función que arma los `evento` de hoy desde
    `bloque_plantilla` + `turno` + `excepcion`, y el cron de las 00:05.
-5. **Rachas.** Las dos rutinas con su check diario y el contador. Ojo con la
-   distinción `racha` vs `registro` de `CLAUDE.md`.
-6. **Botón "empecé".** Con timer de 25 min, para RYM Elite y estudio.
-7. **Push de salida.** PWA instalable, suscripción, cron cada 5 min.
+5. **Rachas.** → llena la sección Rachas. Las dos rutinas con su check diario y
+   el contador. Ojo con la distinción `racha` vs `registro` de `CLAUDE.md`.
+6. **Botón "empecé".** → Hoy. Con timer de 25 min, para RYM Elite y estudio.
+7. **Push de salida.** → Hoy, más la PWA de toda la app. Instalable,
+   suscripción, cron cada 5 min.
    El texto: `SALÍ AHORA para <titulo>. Llegada <hora_inicio>.`
-8. **Metas y evaluaciones.** La vista de `meta_progreso` y la cuenta regresiva de
-   evaluaciones.
-9. **Finanzas.** La vista `plata_disponible`, con `por_dia` como número grande
-   ("$X por día"), los gastos que vienen debajo, y un botón para anotar un gasto
-   suelto. Nada de categorías, gráficos ni reportes. El ahorro no va acá: va como
-   una `meta` de clase `monto`.
-10. **Agregar eventos y evaluaciones desde el teléfono.** Formulario mínimo para
-    crear una evaluación con fecha, y que la pantalla del día muestre cuántos
-    días faltan para la más próxima.
+8. **Metas y evaluaciones.** → llena la sección Metas. La vista de
+   `meta_progreso` y la cuenta regresiva de evaluaciones.
+9. **Finanzas.** → llena la sección Plata. La vista `plata_disponible`, con
+   `por_dia` como número grande ("$X por día"), los gastos que vienen debajo, y
+   un botón para anotar un gasto suelto. Nada de categorías, gráficos ni
+   reportes. El ahorro no va acá: va como una `meta` de clase `monto`.
+10. **Agregar eventos y evaluaciones desde el teléfono.** → Metas y Hoy.
+    Formulario mínimo para crear una evaluación con fecha, y que la pantalla del
+    día muestre cuántos días faltan para la más próxima.
 
 Del 1 al 3 conviene hacerlos sentado. Del 4 en adelante ya se puede desde el celular.
 

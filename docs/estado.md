@@ -4,6 +4,35 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Navegación y línea de contexto — 2026-09-12
+
+Va con el paso 2, no es un paso propio: arma el esqueleto de la app para que
+ningún paso siguiente tenga que inventar navegación.
+
+Hecho:
+- **Barra fija abajo con cuatro secciones**: Hoy, Rachas, Metas y Plata (`components/Navegacion.tsx`). Cada destino mide 56 px de alto, o sea alcanzable con el pulgar sin estirarse. Respeta `env(safe-area-inset-bottom)` y marca la sección activa con `aria-current` más peso y color, no con un cuarto color nuevo.
+- **Sin iconos**: solo las cuatro palabras. Entran las cuatro a 320 px y así no se cuela una familia de iconos que rompa la regla de una sola tipografía.
+- **Tres pantallas de marcador de posición** (`app/rachas`, `app/metas`, `app/plata`, con `components/Marcador.tsx`): el título de la sección y una línea diciendo en qué paso del plan se construye. Sin datos falsos ni maquetas de relleno: si está vacía, se ve vacía.
+- **El shell compartido se mudó a `app/layout.tsx`**: el ancho máximo, el aire lateral y el espacio de abajo para que la barra no tape nada los pone el layout, así las cuatro secciones no pueden quedar desalineadas entre sí. Verificado con la lista completa: la última fila termina 55 px arriba del tope de la barra.
+- **Línea de contexto arriba del héroe** (`components/LineaDeContexto.tsx`), en tenue, con cuatro casos: `Son las 09:30. Libre hasta las 10:21.` · `Son las 10:24. En camino a Álgebra Lineal.` · `Son las 11:45. Estás en Álgebra Lineal hasta las 13:00.` · `Nada más hoy. Mañana te levantas a las 07:00.` La lógica está en `contextoDe()` de `lib/cuenta.ts`, sin UI, y usa el mismo reloj único de `VistaDia`.
+
+Decidí (no estaba en el plan):
+- **"Libre hasta" es hasta la hora de salida, no hasta la de inicio.** La primera versión decía `Libre hasta las 11:31` (cuando empieza la clase) y eso te miente justo cuando más importa: a las 10:30 ya tendrías que estar en la micro. Ahora dice `Libre hasta las 10:21`.
+- **Caso `en camino`, que no estaba en tu ejemplo.** Si la hora de salida ya pasó pero el evento todavía no empieza, no estás libre ni estás adentro: estás (o deberías estar) viajando. Decía "Libre" en pleno estado de "salí ahora" y era contradictorio.
+- **La línea de contexto va en mayúscula inicial y con punto**, como la escribiste. El plan pide copy en minúscula, pero esa regla está pensada para etiquetas y botones (`salí ahora`, `empecé`), no para una frase. Lo anoto porque es una excepción visible al estilo.
+- **Queda una repetición en el estado vacío**: la línea dice `Nada más hoy. Mañana te levantas a las 07:00.` y justo debajo el héroe dice `nada más hoy` y `mañana sales para Rutina de arranque`. Las dos frases son las que pediste, así que no toqué ninguna; si molesta, lo natural es que el héroe se quede solo con `mañana` y la línea cargue el "nada más hoy".
+- Las secciones nuevas no tienen cabecera de fecha ni barra superior: el título de la sección es el `h1` y listo.
+
+Sigue: paso 3 — Supabase conectado. La sección Hoy es la que se llena; Rachas, Metas y Plata siguen en marcador hasta los pasos 5, 8 y 9.
+
+Cambio al plan: `docs/plan.md` ahora dice que la navegación existe desde el paso 2 y cada paso lleva anotada al lado la sección que llena.
+
+Pendiente que Matías tiene que hacer a mano:
+- Probar la barra con el pulgar en el Android: si 56 px alcanza, si las cuatro palabras se leen, y si Hoy debería estar en otra posición (hoy está a la izquierda).
+- Decir si la repetición del estado vacío molesta, y si "Libre hasta las 10:21" se entiende o preferís que diga hasta cuándo podés quedarte tranquilo de otra forma.
+
+---
+
 ## Paso 2 — La cuenta regresiva — 2026-09-12
 
 Hecho:

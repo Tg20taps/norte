@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CuentaRegresiva } from './CuentaRegresiva';
 import { FilaEvento } from './FilaEvento';
+import { LineaDeContexto } from './LineaDeContexto';
 import { minutosAhora } from '@/lib/horas';
 import type { Evento } from '@/lib/tipos';
 
@@ -25,6 +26,8 @@ export function VistaDia({ eventos }: { eventos: Evento[] }) {
 
   return (
     <>
+      <LineaDeContexto eventos={eventos} ahora={ahora} />
+
       <CuentaRegresiva eventos={eventos} ahora={ahora} />
 
       {eventos.length === 0 ? (
