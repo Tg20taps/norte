@@ -68,3 +68,4 @@ de este proyecto no es que quede mal hecho, es que crezca para siempre y nunca s
 ⟨actualizar a medida que avanza⟩
 
 **Siguiente:** correr el esquema en Supabase y levantar la vista del día con datos de prueba.
+ ## Plan / El plan de diseño, la paleta y la escalera de tareas están en docs/plan.md. Hay que leerlo siempre junto con este archivo. Commit directo a main.
