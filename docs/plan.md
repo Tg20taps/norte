@@ -24,7 +24,7 @@ La pantalla principal es una **cuenta regresiva**, no una lista.
 ```
 ┌──────────────────────────────┐
 │                              │
-│   salí en                    │
+│   sales en                   │
 │                              │
 │      12                      │   <- gigante, un tercio de la pantalla
 │      min                     │      cifras tabulares, peso alto
