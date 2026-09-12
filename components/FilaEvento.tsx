@@ -1,16 +1,18 @@
+import { faseDeFila, FONDO_FASE, NOMBRE_FASE } from '@/lib/cuenta';
 import { lugarDe } from '@/lib/datos-falsos';
 import { hhmm, horaSalida } from '@/lib/horas';
 import type { Evento } from '@/lib/tipos';
 
 /**
  * Una fila del día. Desde el paso 2 la lista va debajo de la cuenta regresiva y
- * apagada: el héroe es el número, no la agenda. El número de la izquierda es la
- * hora de salida; el rango y el lugar van abajo.
+ * apagada: el héroe es el número, no la agenda.
  *
- * Las filas se separan con espacio, peso y el fondo `marea`. Sin tarjetas
- * redondeadas ni sombras.
+ * A la izquierda, el semáforo con los mismos cuatro estados de la cuenta
+ * regresiva, para ver de un vistazo cuánto falta para cada cosa del día. Después
+ * la hora de salida, y abajo en tenue la de llegada: la diferencia entre las dos
+ * es el viaje.
  */
-export function FilaEvento({ evento }: { evento: Evento }) {
+export function FilaEvento({ evento, ahora }: { evento: Evento; ahora: number | null }) {
   const lugar = lugarDe(evento.lugar_id);
   const hecho = evento.completado_en !== null;
 
@@ -18,23 +20,32 @@ export function FilaEvento({ evento }: { evento: Evento }) {
   // hora de inicio: no tiene sentido decirle "salí".
   const sinTraslado = evento.minutos_traslado + evento.minutos_margen === 0;
 
-  // El rango del evento. Cuando hay traslado, el inicio es la hora de llegada;
-  // el label de la izquierda ('salí' / 'empieza') dice cuál es cuál.
-  const rango = evento.hora_fin
-    ? `${hhmm(evento.hora_inicio)}\u2013${hhmm(evento.hora_fin)}`
-    : hhmm(evento.hora_inicio);
+  const secundaria = [
+    sinTraslado
+      ? evento.hora_fin
+        ? `hasta ${hhmm(evento.hora_fin)}`
+        : null
+      : `llega ${hhmm(evento.hora_inicio)}`,
+    lugar?.nombre ?? null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-  const secundaria = [rango, lugar?.nombre ?? null].filter(Boolean).join(' · ');
+  const fase = ahora === null ? null : faseDeFila(evento, ahora);
 
   return (
     <li className="flex items-start gap-3 bg-marea px-4 py-4">
-      <div className="w-[5.5rem] shrink-0">
+      <span
+        className={`mt-2 size-2 shrink-0 rounded-full ${fase ? FONDO_FASE[fase] : 'bg-bruma'}`}
+        title={fase ? NOMBRE_FASE[fase] : 'ya empezó'}
+        aria-hidden
+      />
+
+      <div className="w-[4.75rem] shrink-0">
         <div className="text-[11px] leading-none text-niebla">
           {sinTraslado ? 'empieza' : 'salí'}
         </div>
-        <div className="mt-1 text-2xl font-bold leading-none">
-          {horaSalida(evento)}
-        </div>
+        <div className="mt-1 text-2xl font-bold leading-none">{horaSalida(evento)}</div>
       </div>
 
       <div className="min-w-0 flex-1">

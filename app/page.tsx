@@ -1,11 +1,10 @@
-import { CuentaRegresiva } from '@/components/CuentaRegresiva';
-import { FilaEvento } from '@/components/FilaEvento';
+import { VistaDia } from '@/components/VistaDia';
 import { porHoraDeSalida } from '@/lib/cuenta';
 import { EVENTOS, FECHA_EJEMPLO } from '@/lib/datos-falsos';
 import { fechaLarga } from '@/lib/horas';
 
 // Paso 2: la cuenta regresiva es el héroe y la lista del día queda debajo,
-// apagada. Todavía con datos falsos.
+// apagada, con un semáforo por fila. Todavía con datos falsos.
 export default function Dia() {
   const eventos = porHoraDeSalida(EVENTOS.filter((e) => e.fecha === FECHA_EJEMPLO));
 
@@ -18,17 +17,7 @@ export default function Dia() {
         <p className="text-xs text-niebla">paso 2 · datos de prueba</p>
       </header>
 
-      <CuentaRegresiva eventos={eventos} />
-
-      {eventos.length === 0 ? (
-        <p className="text-niebla">hoy no hay nada. no es un error.</p>
-      ) : (
-        <ol className="mt-6 space-y-2 border-t border-bruma pt-6">
-          {eventos.map((e) => (
-            <FilaEvento key={e.id} evento={e} />
-          ))}
-        </ol>
-      )}
+      <VistaDia eventos={eventos} />
     </main>
   );
 }

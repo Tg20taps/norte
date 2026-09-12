@@ -7,30 +7,37 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 ## Paso 2 — La cuenta regresiva — 2026-09-12
 
 Hecho:
-- `components/CuentaRegresiva.tsx` es el héroe de la pantalla: cuánto falta para salir, en grande, con `<Cifras>` y Archivo Expanded. Cuenta contra la hora del sistema y se refresca sola cada 10 segundos.
-- La lógica vive aparte y sin UI, en `lib/cuenta.ts`: `faseDe()` (los cuatro estados), `proximaCuenta()` (qué evento manda la pantalla) y `porHoraDeSalida()`. Probada minuto a minuto contra el día completo y con el reloj falseado en el navegador.
-- Los cuatro estados de color del plan, verificados en Chromium: más de 30 min tenue `#7C9499`; entre 30 y 10 ámbar `#E6A93C` (incluye los bordes exactos, 30 y 10); menos de 10 naranja `#FF6B35`; ya pasó naranja con parpadeo lento de 2.4 s. El naranja `salida` sigue apareciendo solo acá.
+- `components/CuentaRegresiva.tsx` es el héroe de la pantalla: cuánto falta para salir, en grande, con `<Cifras>` y Archivo Expanded.
+- `components/VistaDia.tsx` tiene **un solo reloj** para toda la pantalla y se lo pasa al número grande y a cada fila, así el héroe y los semáforos no pueden discrepar. Se refresca cada 10 s.
+- La lógica vive aparte y sin UI, en `lib/cuenta.ts`: `faseDe()`, `proximaCuenta()`, `porHoraDeSalida()`, `textoDeEspera()` y `faseDeFila()`. Probada minuto a minuto contra el día completo y con el reloj falseado en el navegador.
+- Los cuatro estados de color del plan, verificados en Chromium: más de 30 min tenue `#7C9499`; entre 30 y 10 ámbar `#E6A93C` (bordes exactos incluidos, 30 y 10); menos de 10 naranja `#FF6B35`; ya pasó naranja con parpadeo lento de 2.4 s.
+- **El parpadeo se corta a los 15 min** (`MINUTOS_DE_PARPADEO`). Después queda naranja fijo: si ya vas media hora tarde, el parpadeo dejó de ser información.
+- **Arriba de 90 min el tiempo se lee en horas**: `6 h 30` en vez de `390 min`. Abajo de 90 se queda en minutos. El umbral es `MINUTOS_EN_HORAS`.
 - `prefers-reduced-motion: reduce` apaga el parpadeo y deja el número entero y opaco (verificado: `animation-name: none`, `opacity: 1`). El naranja sigue avisando igual.
 - Vacío: cuando no queda nada por empezar, el número grande se apaga y la pantalla dice `nada más hoy`, la hora de salida en tenue y `mañana sales para <lo que sigue>`. No hay rojo ni mensaje de error.
-- La lista del día quedó igual pero abajo y apagada, separada por una línea en `bruma`: los títulos pasaron de `espuma` a `niebla`. Contraste medido sobre `marea`: `niebla` 4.86:1 (pasa AA), `espuma` 13.7:1, y el número grande 5.5:1 en naranja, muy por encima del mínimo para texto grande.
-- Sigue sin Supabase, sin auth, sin push y con una sola pantalla. El número de 3 cifras entra con holgura a 320 px y no hay scroll horizontal.
+- **Cada fila de la lista lleva su semáforo**, con los mismos cuatro colores que el número grande, sacados del mismo mapa (`FONDO_FASE` en `lib/cuenta.ts`). Así se ve de un vistazo cuánto falta para cada cosa del día, no solo para la próxima.
+- **Cada fila muestra las dos horas**: la de salida grande a la izquierda y la de llegada en tenue abajo (`llega 11:31 · Universidad`). La diferencia entre las dos es el viaje, que antes no se notaba.
+- La lista quedó abajo y apagada, separada por una línea en `bruma`. Contraste medido sobre `marea`: `niebla` 4.86:1 (pasa AA), `espuma` 13.7:1, el número grande en naranja 5.5:1, muy por encima del mínimo para texto grande.
+- Sigue sin Supabase, sin auth, sin push y con una sola pantalla. Verificado a 320 px y 412 px, en los cinco estados: nada desborda ni genera scroll horizontal.
 
 Decidí (no estaba en el plan):
 - **La cuenta corre contra la hora del reloj del sistema, ignorando la fecha de los datos falsos.** El lunes de ejemplo es el 14-09-2026, pero comparar contra esa fecha dejaría la pantalla muerta. Así se puede abrir a cualquier hora y ver el estado que corresponde. Cuando entre Supabase (paso 3) la fecha ya va a ser la de verdad.
 - **El evento que manda la pantalla es el primero cuya hora de inicio todavía no pasó**, no el primero cuya salida no pasó. Por eso, si ya tendrías que haber salido y la clase todavía no empezó, la pantalla se queda ahí avisando que vas tarde en vez de saltar al siguiente. Efecto lateral correcto: los eventos en Casa nunca llegan al estado "pasado", porque ahí la salida es igual al inicio y no tiene sentido decirte que salgas para algo que ya estás haciendo.
-- **El vacío da la vuelta al mismo día.** Con un solo día hardcodeado, "lo que sigue" es el primer evento de ese mismo lunes, etiquetado `mañana`. Con datos de verdad va a ser el día siguiente real, sin cambiar el componente.
-- **El número siempre son minutos.** A las 00:30 dice `sales en 390 min`, que es raro de leer pero es lo que muestra el plan (`12` / `min`) y en esa fase el número va en tenue justamente para que no le prestes atención. Si lo querés como `6 h 30`, es una línea en `CuentaRegresiva`.
-- La unidad (`min`, `min tarde`) va siempre en `niebla`: el plan dice que el que cambia de color es el número, y pintar los dos duplicaba la señal.
+- **El semáforo de una fila se apaga (gris `bruma`) cuando el evento ya empezó**, en vez de quedarse en naranja. Si no, a las 22:00 la pantalla entera sería naranja y el color dejaría de significar algo. Misma regla que el héroe. Los semáforos no parpadean: el parpadeo sigue siendo la única animación y solo del número grande.
+- **El semáforo mete naranja y ámbar en las filas**, que antes eran colores exclusivos del número. Sigue siendo un color por significado (cuánto falta para salir), pero ya no aparece en un solo lugar de la pantalla. Es lo que pediste; lo anoto porque toca la regla de la paleta.
+- **Las filas con traslado perdieron la hora de término** para que la línea entre en una sola a 320 px: dicen `llega 11:31 · Universidad` en vez del rango. Las de Casa sí la conservan (`hasta 19:30 · Casa`), porque ahí la hora grande ya es la de inicio. El mock del plan tampoco muestra horas de término.
+- **El número en horas va más chico** (17vw contra 33vw del número de minutos). A 33vw, `6 h 30` desbordaba a lo ancho; y además esa es la fase tranquila, así que achicarlo es correcto: lo urgente es lo que grita.
+- El número siempre son minutos abajo de 90; `textoDeEspera()` también formatea el atraso, así que si algún día vas más de 90 min tarde dice `1 h 40 tarde`.
 - Efecto lateral de apagar la lista: un evento completado ya no se distingue por el título más tenue, porque ahora todos los títulos son `niebla`. El ✓ en `racha viva` quedó como la única marca.
-- La fecha del encabezado bajó de `text-2xl` a `text-base` para que el héroe sea el héroe. Es lo único del paso 1 que toqué además de apagar la lista.
+- La fecha del encabezado bajó de `text-2xl` a `text-base` para que el héroe sea el héroe.
 - El refresco es cada 10 s, así que el número puede tardar hasta 10 s en cambiar de minuto. Para una pantalla que se mira de reojo alcanza y no despierta el teléfono cada segundo.
 
-Ojo: el parpadeo del estado "pasado" puede durar bastante (para Álgebra Lineal, desde las 10:22 hasta las 11:31, que es cuando empieza). Si en el teléfono resulta molesto, lo natural es cortarlo a los X minutos, pero eso ya es decisión tuya después de verlo.
+Cambio al plan: `docs/plan.md` tiene un **paso 10** al final de la escalera, "Agregar eventos y evaluaciones desde el teléfono".
 
 Sigue: paso 3 — Supabase conectado: correr `schema.sql`, leer `evento` de verdad, claves por variables de entorno.
 
 Pendiente que Matías tiene que hacer a mano:
-- Abrir la app en el Android a distintas horas del día y decir si el número se lee de reojo a las 07:00, si el naranja alarma lo justo, y si el parpadeo molesta o ayuda.
+- Abrir la app en el Android a distintas horas y decir si el número se lee de reojo a las 07:00, si el naranja alarma lo justo, si 15 min de parpadeo es el corte correcto, y si el semáforo de las filas ayuda o ensucia.
 - Para el paso 3: crear el proyecto en Supabase, correr `db/schema.sql`, y poner las claves como variables de entorno en Vercel (nunca en el repo).
 
 ---

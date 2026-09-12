@@ -128,6 +128,9 @@ pasos ni combinar dos.
    ("$X por día"), los gastos que vienen debajo, y un botón para anotar un gasto
    suelto. Nada de categorías, gráficos ni reportes. El ahorro no va acá: va como
    una `meta` de clase `monto`.
+10. **Agregar eventos y evaluaciones desde el teléfono.** Formulario mínimo para
+    crear una evaluación con fecha, y que la pantalla del día muestre cuántos
+    días faltan para la más próxima.
 
 Del 1 al 3 conviene hacerlos sentado. Del 4 en adelante ya se puede desde el celular.
 

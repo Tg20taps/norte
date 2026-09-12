@@ -21,6 +21,40 @@ export type Cuenta = {
   fase: Fase;
 };
 
+/** Arriba de este umbral el tiempo se lee en horas y no en minutos. */
+export const MINUTOS_EN_HORAS = 90;
+
+/** El parpadeo de "ya pasó" se corta a los 15 min: después queda naranja fijo. */
+export const MINUTOS_DE_PARPADEO = 15;
+
+/**
+ * El color de cada fase, en un solo lugar, para que la cuenta regresiva y el
+ * semáforo de cada fila no puedan discrepar. Cada color significa una cosa.
+ */
+export const TEXTO_FASE: Record<Fase, string> = {
+  tranquilo: 'text-niebla',
+  preparate: 'text-en-riesgo',
+  andando: 'text-salida',
+  pasado: 'text-salida',
+  manana: 'text-niebla',
+};
+
+export const FONDO_FASE: Record<Fase, string> = {
+  tranquilo: 'bg-niebla',
+  preparate: 'bg-en-riesgo',
+  andando: 'bg-salida',
+  pasado: 'bg-salida',
+  manana: 'bg-niebla',
+};
+
+export const NOMBRE_FASE: Record<Fase, string> = {
+  tranquilo: 'falta más de 30 min',
+  preparate: 'faltan menos de 30 min',
+  andando: 'faltan menos de 10 min',
+  pasado: 'ya tendrías que haber salido',
+  manana: 'mañana',
+};
+
 export function faseDe(minutos: number): Fase {
   if (minutos < 0) return 'pasado';
   if (minutos < 10) return 'andando';
@@ -59,4 +93,33 @@ export function proximaCuenta(eventos: Evento[], ahora: number): Cuenta | null {
     minutos: minutosDe(horaSalida(primero)) + MINUTOS_DEL_DIA - ahora,
     fase: 'manana',
   };
+}
+
+/**
+ * Cuánto falta, en texto. Arriba de 90 min pasa a horas: `390 min` se lee
+ * mal de reojo, `6 h 30` no. Abajo de 90 se queda en minutos.
+ *
+ * Devuelve el valor y la unidad por separado porque en la pantalla van en
+ * tamaños distintos: el valor es el número grande.
+ */
+export function textoDeEspera(minutos: number): { valor: string; unidad: string } {
+  const m = Math.abs(minutos);
+  if (m > MINUTOS_EN_HORAS) {
+    const horas = Math.floor(m / 60);
+    const resto = m % 60;
+    return { valor: `${horas} h ${String(resto).padStart(2, '0')}`, unidad: '' };
+  }
+  return { valor: String(m), unidad: 'min' };
+}
+
+/**
+ * El semáforo de una fila de la lista: los mismos cuatro estados que el número
+ * grande, para ver de un vistazo cuánto falta para cada cosa del día.
+ *
+ * `null` cuando el evento ya empezó: ahí no queda nada que avisar, y pintar de
+ * naranja todo lo que ya pasó llenaría la pantalla de alarmas falsas.
+ */
+export function faseDeFila(evento: Evento, ahora: number): Fase | null {
+  if (minutosDe(evento.hora_inicio) <= ahora) return null;
+  return faseDe(minutosDe(horaSalida(evento)) - ahora);
 }

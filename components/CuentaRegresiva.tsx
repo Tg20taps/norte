@@ -1,42 +1,34 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import { Cifras } from './Cifras';
-import { proximaCuenta, type Fase } from '@/lib/cuenta';
-import { hhmm, horaSalida, minutosAhora } from '@/lib/horas';
+import {
+  MINUTOS_DE_PARPADEO,
+  proximaCuenta,
+  TEXTO_FASE,
+  textoDeEspera,
+} from '@/lib/cuenta';
+import { hhmm, horaSalida } from '@/lib/horas';
 import type { Evento } from '@/lib/tipos';
 
-// Un color por fase, los del plan. `salida` (#FF6B35) vive acá y en ningún
-// otro lugar de la app.
-const COLOR: Record<Fase, string> = {
-  tranquilo: 'text-niebla',
-  preparate: 'text-en-riesgo',
-  andando: 'text-salida',
-  pasado: 'text-salida parpadeo',
-  manana: 'text-niebla',
-};
+const GRANDE = 'expandida font-bold leading-[0.85]';
 
-const GIGANTE = 'expandida text-[clamp(5.5rem,33vw,10rem)] font-bold leading-[0.85]';
+// Dos tamaños: el número de minutos es el que tiene que gritar. El tiempo en
+// horas ("6 h 30") es más largo y además es la fase tranquila, así que va más
+// chico: entra a lo ancho en pantalla angosta y no compite con lo urgente.
+const TAMANO_MINUTOS = 'text-[clamp(5.5rem,33vw,10rem)]';
+const TAMANO_HORAS = 'text-[clamp(3rem,17vw,5.5rem)]';
 
 /**
  * El héroe de la pantalla: cuánto falta para salir, no la agenda del día.
  *
- * Cuenta contra la hora del sistema y se refresca sola. El número va en
- * <Cifras> porque Archivo no trae cifras tabulares y si no, baila al cambiar.
+ * El reloj lo trae `VistaDia`; acá solo se dibuja. El número va en <Cifras>
+ * porque Archivo no trae cifras tabulares y si no, baila al cambiar.
  */
-export function CuentaRegresiva({ eventos }: { eventos: Evento[] }) {
-  // Arranca en null: la hora es la del navegador, no la del server, así que el
-  // primer render tiene que coincidir con el del server y recién después
-  // aparece el número.
-  const [ahora, setAhora] = useState<number | null>(null);
-
-  useEffect(() => {
-    const leer = () => setAhora(minutosAhora(new Date()));
-    leer();
-    const id = setInterval(leer, 10_000);
-    return () => clearInterval(id);
-  }, []);
-
+export function CuentaRegresiva({
+  eventos,
+  ahora,
+}: {
+  eventos: Evento[];
+  ahora: number | null;
+}) {
   const cuenta = ahora === null ? null : proximaCuenta(eventos, ahora);
 
   // Todavía sin la hora del navegador: el hueco del número, en tenue.
@@ -44,7 +36,7 @@ export function CuentaRegresiva({ eventos }: { eventos: Evento[] }) {
     return (
       <section className="py-4">
         <p className="text-sm text-niebla">sales en</p>
-        <p className={`${GIGANTE} text-niebla`} aria-hidden>
+        <p className={`${GRANDE} ${TAMANO_HORAS} text-niebla`} aria-hidden>
           ··
         </p>
       </section>
@@ -60,10 +52,7 @@ export function CuentaRegresiva({ eventos }: { eventos: Evento[] }) {
       <section className="py-4">
         <p className="text-sm text-niebla">nada más hoy</p>
         <div className="text-niebla">
-          <Cifras
-            valor={horaSalida(evento)}
-            className="expandida text-[clamp(3rem,17vw,4.5rem)] font-bold leading-none"
-          />
+          <Cifras valor={horaSalida(evento)} className={`${GRANDE} ${TAMANO_HORAS}`} />
         </div>
         <p className="mt-4 text-niebla">
           mañana sales para <span className="text-espuma">{evento.titulo}</span>
@@ -73,17 +62,33 @@ export function CuentaRegresiva({ eventos }: { eventos: Evento[] }) {
   }
 
   const tarde = fase === 'pasado';
+  const { valor, unidad } = textoDeEspera(minutos);
+
+  // El parpadeo se corta a los 15 min tarde. Después queda naranja fijo: si ya
+  // vas media hora tarde, el parpadeo dejó de ser información.
+  const parpadea = tarde && Math.abs(minutos) < MINUTOS_DE_PARPADEO;
+
+  const leyenda = tarde ? (unidad ? `${unidad} tarde` : 'tarde') : unidad;
+
+  // `unidad` vacía significa que el valor ya viene en horas, y ese texto es más
+  // largo que tres cifras.
+  const tamano = unidad ? TAMANO_MINUTOS : TAMANO_HORAS;
 
   return (
     <section className="py-4">
       <p className="text-sm text-niebla">{tarde ? 'salí ahora' : 'sales en'}</p>
 
-      <div className={`${GIGANTE} ${COLOR[fase]} transition-colors duration-500`}>
-        <Cifras valor={Math.abs(minutos)} />
+      <div
+        className={`${GRANDE} ${tamano} ${TEXTO_FASE[fase]} transition-colors duration-500 ${
+          parpadea ? 'parpadeo' : ''
+        }`}
+      >
+        <Cifras valor={valor} />
       </div>
 
-      {/* El que cambia de color es el número. La unidad va siempre en tenue. */}
-      <p className="text-lg font-semibold text-niebla">{tarde ? 'min tarde' : 'min'}</p>
+      {/* El que cambia de color es el número. La unidad va siempre en tenue.
+          El espacio duro mantiene la altura cuando el tiempo va en horas. */}
+      <p className="text-lg font-semibold text-niebla">{leyenda || ' '}</p>
 
       <p className="mt-6 flex items-baseline justify-between gap-3">
         <span className="truncate font-semibold text-espuma">{evento.titulo}</span>
