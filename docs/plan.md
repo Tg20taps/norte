@@ -124,6 +124,10 @@ pasos ni combinar dos.
    El texto: `SALÍ AHORA para <titulo>. Llegada <hora_inicio>.`
 8. **Metas y evaluaciones.** La vista de `meta_progreso` y la cuenta regresiva de
    evaluaciones.
+9. **Finanzas.** La vista `plata_disponible`, con `por_dia` como número grande
+   ("$X por día"), los gastos que vienen debajo, y un botón para anotar un gasto
+   suelto. Nada de categorías, gráficos ni reportes. El ahorro no va acá: va como
+   una `meta` de clase `monto`.
 
 Del 1 al 3 conviene hacerlos sentado. Del 4 en adelante ya se puede desde el celular.
 
