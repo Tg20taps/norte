@@ -139,7 +139,7 @@ create table habito (
 
 insert into habito (nombre, modo, ancla, orden) values
   ('Hacer la cama',   'racha',  'arranque', 1),
-  ('Meditar 5 min',   'racha',  'arranque', 2),
+  ('Meditar 15 min',  'racha',  'arranque', 2),
   ('Duolingo',        'racha',  'arranque', 3),
   ('Comer algo real', 'racha',  'arranque', 4),
   ('Leer 15 min',     'racha',  'cierre',   1),

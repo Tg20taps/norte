@@ -104,6 +104,13 @@ El tamaño y el peso hacen toda la jerarquía. No hace falta una segunda familia
 Imperativo y directo, en minúscula. `salí ahora`, no `Es momento de partir`.
 `empecé`, no `Iniciar sesión de trabajo`. El botón dice exactamente lo que pasa.
 
+### Tono
+
+La app informa con contexto, no juzga. Puede decir "gastaste $40.000 en gastos
+sueltos, un 20% de lo que te quedaba" o "llevas 3 días sin el bloque de estudio
+pro". No puede usar reproche moral ni lenguaje de castigo. El objetivo es que
+Matías saque la conclusión con el dato completo delante, no que se sienta mal.
+
 ## 2. Escalera de tareas
 
 Una tarea = una sesión = un PR que se lee en cinco minutos. En orden. No saltarse
@@ -140,6 +147,10 @@ pasar es que la app crezca de ancho sin que nadie lo haya decidido.
 10. **Agregar eventos y evaluaciones desde el teléfono.** → Metas y Hoy.
     Formulario mínimo para crear una evaluación con fecha, y que la pantalla del
     día muestre cuántos días faltan para la más próxima.
+11. **Detección automática del traslado.** → Hoy. Estimar el tiempo real de
+    viaje sin intervención manual, primero con la hora de aviso y la hora de
+    llegada, y más adelante con geolocalización si la app está instalada.
+    Actualizar `lugar.minutos_traslado` con la mediana real.
 
 Del 1 al 3 conviene hacerlos sentado. Del 4 en adelante ya se puede desde el celular.
 

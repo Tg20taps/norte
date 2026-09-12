@@ -4,6 +4,29 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Ajustes de datos y de plan — 2026-09-12
+
+Sin tocar la interfaz: ningún componente cambió, solo datos y documentos.
+
+Hecho:
+- `db/schema.sql`: el hábito `Meditar 5 min` pasó a `Meditar 15 min`. Se edita el esquema directo y no una migración porque **el esquema todavía no se corrió en Supabase** (sigue pendiente del paso 3). En cuanto lo corras, cualquier cambio posterior va sí o sí como migración numerada en `db/migrations/`.
+- `lib/datos-falsos.ts`: la rutina de arranque quedó de 30 minutos (07:00–07:30) y el detalle dice `meditar 15 min`. Verificado en pantalla: la fila dice `hasta 07:30` y la línea de contexto `Son las 07:15. Estás en Rutina de arranque hasta las 07:30.`
+- `docs/plan.md`: nueva sección **Tono** en la dirección de diseño, con la regla tal cual la escribiste.
+- `docs/plan.md`: nuevo paso al final de la escalera, **Detección automática del traslado**, con el texto tal cual, anotado como → Hoy.
+
+Tres cosas que no cuadraban con lo que pediste, y qué hice:
+- **La rutina de arranque no estaba en 20 minutos, estaba en 40** (07:00–07:40 en los datos de prueba). No hay ningún 20 en el repo. La dejé en 30, que es el número que pediste.
+- **No había ninguna regla de tono que corregir en `docs/plan.md`**: nunca se agregó. Lo más parecido es la línea de `CLAUDE.md` sobre `registro` ("sin racha, sin cero, sin rojo, sin mensajes de culpa"), que es más estricta y solo para ese tipo de hábito. Así que la regla de tono entró como sección nueva, no como corrección. Ojo con la frontera: la regla nueva permite decir "llevas 3 días sin el bloque de estudio pro", y eso es legítimo porque `estudio_pro` es un bloque, no un `registro`; para los `registro` sigue mandando `CLAUDE.md`.
+- **La escalera terminaba en 10, no en 11**, así que el paso nuevo quedó como **11** y no como 12. Si tenías un paso 11 en mente que nunca se escribió, falta y hay que agregarlo antes. Además, en Markdown una lista numerada se renumera sola, así que escribir "12" igual habría salido 11.
+
+Sigue: paso 3 — Supabase conectado. La sección Hoy es la que se llena; Rachas, Metas y Plata siguen en marcador hasta los pasos 5, 8 y 9.
+
+Pendiente que Matías tiene que hacer a mano:
+- Decir si falta un paso 11 en la escalera o si el traslado automático era efectivamente el que sigue.
+- Para el paso 3: crear el proyecto en Supabase, correr `db/schema.sql` (ya con `Meditar 15 min`), y poner las claves como variables de entorno en Vercel.
+
+---
+
 ## Navegación y línea de contexto — 2026-09-12
 
 Va con el paso 2, no es un paso propio: arma el esqueleto de la app para que
