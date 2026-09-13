@@ -4,6 +4,85 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Paso 3 — Supabase conectado — 2026-09-13
+
+Hecho:
+- `lib/supabase.ts` arma el cliente desde `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Si falta alguna devuelve `null` en vez de reventar: una variable mal puesta en Vercel no tira la pantalla abajo. Cero claves en el código.
+- `lib/datos.ts` lee los `evento` de hoy y la tabla `lugar`. Pide las columnas una por una y **no** `select('*')`, para no arrastrar `hora_salida`: en Postgres es columna generada y en la app la calcula `horaSalida()`. Una sola fórmula en los dos lados.
+- La pantalla Hoy (`app/page.tsx`) es un componente de servidor `async` con `dynamic = 'force-dynamic'`: la agenda es de hoy, no se cachea.
+- **`lib/datos-falsos.ts` se borró.** Ya no hay datos falsos en el repo; si hacen falta, están en el historial de git.
+- `db/migrations/001_lectura_anonima.sql`: RLS y políticas de **solo lectura** para el rol `anon`, únicamente sobre `evento` y `lugar`. Es una migración y no una edición de `schema.sql` porque el esquema ya se corrió.
+- Probado contra un PostgREST de mentira, los tres caminos: con eventos (los muestra y resuelve el lugar), sin eventos (estado vacío) y con la lectura rechazada (401 de RLS).
+
+**Fecha y huso.** `fechaDeHoy()` calcula el día en `America/Santiago`, fijo en `lib/horas.ts`. El server de Vercel corre en UTC, así que después de las 21:00 en Chile el día ya habría cambiado para el server y la pantalla habría pedido la agenda equivocada.
+
+Decidí (no estaba en el plan):
+- **Un día vacío y una lectura fallida no se ven igual.** Si no hay eventos, sale el estado vacío de siempre (`hoy no hay nada. no es un error.`). Si la lectura falla —RLS cerrado, variable mal puesta, red caída— sale una línea tranquila en tenue: `No se pudo leer la agenda. Puede haber eventos que no estás viendo.`, y el error real queda en la consola del server. No es una pantalla de error ni una pantalla en blanco, pero tampoco te dice que no tenés nada cuando en realidad no pudo mirar. Una app que existe para que no llegues tarde no puede mentir en silencio justo ahí.
+- **Las políticas cubren solo `evento` y `lugar`**, que es lo que esta pantalla lee. El resto de las tablas sigue cerrado; cada paso abre lo suyo. Abrir todo ahora sería exponer datos que ninguna pantalla usa.
+- El estado vacío ya no deja la cuenta regresiva colgando arriba con `··`: cuando no hay eventos, la pantalla es solo la línea del estado vacío.
+- Del encabezado se fue el `paso 2 · datos de prueba`, que ya no era cierto.
+
+**Endurecer las políticas cuando entre auth.** Hoy la anon key viaja al navegador (es pública por diseño) y `using (true)` deja leer la agenda a cualquiera que tenga esa clave y la URL del proyecto. Para una agenda personal el riesgo es bajo, pero no es cero. Cuando haya auth: cambiar `to anon` por `to authenticated`, filtrar por usuario, y sacar las políticas anónimas. La auth no tiene paso propio en la escalera todavía.
+
+Ojo para el paso 4: la pantalla no se refresca sola. Si la dejás abierta pasada la medianoche, el reloj sigue corriendo pero los eventos son los de ayer hasta que recargues.
+
+Sigue: paso 4 — materializar el día: la función que arma los `evento` de hoy desde `bloque_plantilla` + `turno` + `excepcion`, y el cron de las 00:05.
+
+---
+
+### Pendiente que Matías tiene que hacer a mano
+
+**1. Correr la migración de las políticas.** En Supabase, SQL Editor, pegar entero `db/migrations/001_lectura_anonima.sql`. Sin esto la pantalla va a decir que no pudo leer la agenda. Para comprobar que quedaron:
+
+```sql
+select tablename, policyname, roles, cmd
+from pg_policies
+where tablename in ('evento', 'lugar');
+```
+
+Tienen que aparecer dos filas, las dos con `cmd = SELECT`.
+
+**2. Ajustar tus tiempos de traslado reales.** `schema.sql` dejó cuatro lugares con números inventados. Estos son los que mandan sobre la hora de salida de todo:
+
+```sql
+select * from lugar;
+
+update lugar set minutos_traslado = 60, minutos_margen = 10 where nombre = 'Universidad';
+update lugar set minutos_traslado = 35, minutos_margen = 10 where nombre = 'Walmart Alerce';
+update lugar set minutos_traslado = 30, minutos_margen = 10 where nombre = 'Cancha';
+```
+
+**3. Para ver la pantalla con datos hoy mismo, hay que insertar `evento` a mano.** Importante: **nada llena `evento` todavía**. El materializador es el paso 4, así que hasta entonces la pantalla va a decir `hoy no hay nada` aunque cargues la plantilla. Para probar hoy:
+
+```sql
+insert into evento (fecha, tipo, titulo, detalle, hora_inicio, hora_fin, lugar_id, minutos_traslado, minutos_margen)
+select current_date, 'clase', 'Álgebra Lineal', 'MAT6130 · PM-W603', '11:31', '13:00',
+       l.id, l.minutos_traslado, l.minutos_margen
+from lugar l where l.nombre = 'Universidad';
+```
+
+Fijate que el traslado y el margen se copian del lugar y **`hora_salida` no se escribe**: la calcula sola la base. Si la escribís a mano, se rompe la idea central de la app.
+
+**4. Cargar tus bloques reales de la semana** en `bloque_plantilla`. Esto todavía no se ve en pantalla (lo va a usar el paso 4), pero conviene tenerlo cargado para que el materializador tenga de dónde sacar. Uno por bloque, `dia_semana` 1 = lunes:
+
+```sql
+insert into bloque_plantilla (tipo, titulo, detalle, dia_semana, hora_inicio, hora_fin, lugar_id)
+select 'clase', 'Álgebra Lineal', 'MAT6130 · PM-W603', 1, '11:31', '13:00', l.id
+from lugar l where l.nombre = 'Universidad';
+```
+
+Los `turno` del Walmart se cargan aparte, cuando llega la malla del mes:
+
+```sql
+insert into turno (fecha, hora_inicio, hora_fin, colacion_inicio, colacion_fin, lugar_id)
+select '2026-09-15', '16:00', '22:00', '18:30', '19:00', l.id
+from lugar l where l.nombre = 'Walmart Alerce';
+```
+
+**5. Decime si la pantalla dice `No se pudo leer la agenda`** después de correr el paso 1: eso significa que las políticas no quedaron y hay que mirarlas juntos.
+
+---
+
 ## Ajustes de datos y de plan — 2026-09-12
 
 Sin tocar la interfaz: ningún componente cambió, solo datos y documentos.

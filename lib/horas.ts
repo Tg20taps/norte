@@ -38,6 +38,26 @@ export function minutosAhora(ahora: Date): number {
   return ahora.getHours() * 60 + ahora.getMinutes();
 }
 
+/**
+ * La zona horaria de Matías, fija.
+ *
+ * El server de Vercel corre en UTC, así que después de las 21:00 en Chile ya
+ * sería "mañana" para el server y la pantalla pediría el día equivocado. Un
+ * solo usuario, un solo huso: se fija acá y se termina el problema.
+ */
+export const ZONA = 'America/Santiago';
+
+/** Hoy en la zona de Matías, como 'YYYY-MM-DD' para comparar con `evento.fecha`. */
+export function fechaDeHoy(ahora: Date = new Date()): string {
+  // 'en-CA' da justo el formato ISO que usa Postgres para `date`.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: ZONA,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(ahora);
+}
+
 /** '2026-09-14' -> 'lunes 14 de septiembre' */
 export function fechaLarga(fecha: string): string {
   const d = new Date(`${fecha}T00:00:00`);

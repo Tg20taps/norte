@@ -1,7 +1,6 @@
 import { faseDeFila, FONDO_FASE, NOMBRE_FASE } from '@/lib/cuenta';
-import { lugarDe } from '@/lib/datos-falsos';
 import { hhmm, horaSalida } from '@/lib/horas';
-import type { Evento } from '@/lib/tipos';
+import type { Evento, Lugar } from '@/lib/tipos';
 
 /**
  * Una fila del día. Desde el paso 2 la lista va debajo de la cuenta regresiva y
@@ -12,8 +11,15 @@ import type { Evento } from '@/lib/tipos';
  * la hora de salida, y abajo en tenue la de llegada: la diferencia entre las dos
  * es el viaje.
  */
-export function FilaEvento({ evento, ahora }: { evento: Evento; ahora: number | null }) {
-  const lugar = lugarDe(evento.lugar_id);
+export function FilaEvento({
+  evento,
+  lugar,
+  ahora,
+}: {
+  evento: Evento;
+  lugar: Lugar | null;
+  ahora: number | null;
+}) {
   const hecho = evento.completado_en !== null;
 
   // Si no hay traslado ni margen (o sea, en casa), la hora de salida es la
