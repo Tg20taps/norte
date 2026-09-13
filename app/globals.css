@@ -47,6 +47,9 @@ body {
 .cifras {
   display: inline-flex;
   align-items: baseline;
+  /* Cada carácter es un ítem flex, y un ítem que es solo un espacio colapsa a
+     cero: "9 h 00 min" se vería "9h00min". `pre` conserva los espacios. */
+  white-space: pre;
 }
 
 .cifras > .cifra {

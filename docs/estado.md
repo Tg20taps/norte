@@ -4,6 +4,30 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Correcciones en la cuenta regresiva — 2026-09-13
+
+Hecho:
+- **Estando dentro de un evento, el héroe cuenta hacia el fin de ese evento** y el texto de arriba dice `termina en`. En el turno de 14:00 a 22:00 ahora dice `termina en 7 h 30 min` en vez de 9 h hacia la rutina de cierre.
+- **El formato sobre 90 minutos muestra las unidades**: `9 h 00 min` en vez de `9h00`.
+- `docs/estetica.md`: la lista de mejoras visuales pendientes para una pasada completa después del paso 5. Nada implementado, solo escrito.
+
+Decidí (no estaba en el plan):
+- **Gana lo que pase primero: el fin de lo que estás haciendo, o la salida del próximo.** No es siempre el fin. Si estás en clase hasta las 13:00 pero para el básquet tenés que salir 12:50, a las 12:30 el héroe dice `sales en 20 min` en naranja, no `termina en 30 min`. La salida es la razón de ser de la app y no puede quedar tapada por un evento en curso. Y si la salida ya pasó, gana siempre: llegar tarde manda sobre todo lo demás. Es una sola comparación en `proximaCuenta()`.
+- **La fase `en_curso` va en tenue, nunca en naranja.** Que un evento esté por terminar no es urgencia: no hay nada que hacer hasta que termine. Así el naranja sigue queriendo decir una sola cosa, "tenés que salir".
+- Estando en un evento, la línea de abajo del número muestra la **hora de término** y no la de inicio: el número cuenta hacia esa hora, mostrar otra sería confuso.
+- Cuando el día se termina pero seguís dentro del último evento, ahora dice `termina en` en vez de saltar a `nada más hoy`. El vacío aparece recién cuando ese evento termina.
+
+**Un bug que apareció con el formato nuevo.** `.cifras` es `inline-flex`, así que cada carácter es un ítem flex y **un ítem que es solo un espacio colapsa a cero**: `9 h 00 min` se veía `9h00min`, exactamente el problema que había que arreglar. Se resolvió con `white-space: pre` en `.cifras`. Medido en el navegador: los espacios ahora miden 13 px a 320 px de ancho, 17 px a 412.
+
+**El número en horas quedó más chico** (13vw, tope 3.75rem, contra 33vw del número de minutos). `7 h 30 min` es una cadena larga y a los tamaños anteriores se salía de pantalla; verificado a 320, 412 y 560 px, ahora entra con holgura en los tres. Es la fase tranquila, así que achicarlo va en la dirección correcta, pero si lo querés más grande la alternativa es dejar el número en `7 h 30` y bajar el `min` a la línea de la unidad, que hoy está vacía en ese caso.
+
+Sigue: paso 4 — materializar el día desde `bloque_plantilla` + `turno` + `excepcion`, con el cron de las 00:05.
+
+Pendiente que Matías tiene que hacer a mano:
+- Mirar en el teléfono si el número en horas quedó demasiado chico, y decir si preferís la alternativa de arriba.
+
+---
+
 ## Paso 3 — Supabase conectado — 2026-09-13
 
 Hecho:

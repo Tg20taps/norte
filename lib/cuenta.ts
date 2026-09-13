@@ -12,11 +12,21 @@ const MINUTOS_DEL_DIA = 24 * 60;
  *   pasado      ya tendrías que haber salido   naranja, parpadeo lento
  *   manana      no queda nada hoy      el número se apaga
  */
-export type Fase = 'tranquilo' | 'preparate' | 'andando' | 'pasado' | 'manana';
+export type Fase =
+  | 'tranquilo'
+  | 'preparate'
+  | 'andando'
+  | 'pasado'
+  | 'en_curso'
+  | 'manana';
 
 export type Cuenta = {
   evento: Evento;
-  /** Minutos hasta la hora de salida. Negativo si ya pasó. */
+  /**
+   * Minutos hasta el momento que manda: la hora de salida del próximo evento,
+   * o el fin del que estás haciendo ahora si ese llega antes. Negativo si la
+   * hora de salida ya pasó.
+   */
   minutos: number;
   fase: Fase;
 };
@@ -36,6 +46,9 @@ export const TEXTO_FASE: Record<Fase, string> = {
   preparate: 'text-en-riesgo',
   andando: 'text-salida',
   pasado: 'text-salida',
+  // En curso no es urgencia: no hay nada que hacer hasta que termine. El
+  // naranja sigue queriendo decir una sola cosa, "tenés que salir".
+  en_curso: 'text-niebla',
   manana: 'text-niebla',
 };
 
@@ -44,6 +57,7 @@ export const FONDO_FASE: Record<Fase, string> = {
   preparate: 'bg-en-riesgo',
   andando: 'bg-salida',
   pasado: 'bg-salida',
+  en_curso: 'bg-niebla',
   manana: 'bg-niebla',
 };
 
@@ -52,6 +66,7 @@ export const NOMBRE_FASE: Record<Fase, string> = {
   preparate: 'faltan menos de 30 min',
   andando: 'faltan menos de 10 min',
   pasado: 'ya tendrías que haber salido',
+  en_curso: 'en curso',
   manana: 'mañana',
 };
 
@@ -77,16 +92,50 @@ export function porHoraDeSalida(eventos: Evento[]): Evento[] {
  * Cuando no queda nada por empezar, lo que sigue es el primer evento del día
  * siguiente: ahí el número se apaga y la pantalla solo dice qué viene.
  */
+/** El evento que estás haciendo ahora mismo, si hay alguno. */
+export function eventoEnCurso(eventos: Evento[], ahora: number): Evento | null {
+  return (
+    eventos.find(
+      (e) =>
+        e.hora_fin !== null &&
+        minutosDe(e.hora_inicio) <= ahora &&
+        ahora < minutosDe(e.hora_fin)
+    ) ?? null
+  );
+}
+
 export function proximaCuenta(eventos: Evento[], ahora: number): Cuenta | null {
   const ordenados = porHoraDeSalida(eventos);
   if (ordenados.length === 0) return null;
 
+  // Candidato 1: la salida del próximo evento que todavía no empezó.
   const proximo = ordenados.find((e) => minutosDe(e.hora_inicio) > ahora);
-  if (proximo) {
-    const minutos = minutosDe(horaSalida(proximo)) - ahora;
-    return { evento: proximo, minutos, fase: faseDe(minutos) };
-  }
+  const salida: Cuenta | null = proximo
+    ? (() => {
+        const minutos = minutosDe(horaSalida(proximo)) - ahora;
+        return { evento: proximo, minutos, fase: faseDe(minutos) };
+      })()
+    : null;
 
+  // Candidato 2: el fin de lo que estás haciendo ahora.
+  const actual = eventoEnCurso(ordenados, ahora);
+  const fin: Cuenta | null = actual
+    ? {
+        evento: actual,
+        minutos: minutosDe(actual.hora_fin as string) - ahora,
+        fase: 'en_curso',
+      }
+    : null;
+
+  // Manda lo que pase primero. Estando dentro de un evento, contar hacia la
+  // salida del siguiente cuando falta medio día es confuso; y al revés, si la
+  // salida cae antes del fin, esa gana porque es la razón de ser de la app.
+  // Si la salida ya pasó, `minutos` es negativo y gana siempre: llegar tarde
+  // manda sobre todo lo demás.
+  if (salida && (!fin || salida.minutos <= fin.minutos)) return salida;
+  if (fin) return fin;
+
+  // Ni nada por empezar ni nada en curso: el día se terminó.
   const primero = ordenados[0];
   return {
     evento: primero,
@@ -107,7 +156,9 @@ export function textoDeEspera(minutos: number): { valor: string; unidad: string 
   if (m > MINUTOS_EN_HORAS) {
     const horas = Math.floor(m / 60);
     const resto = m % 60;
-    return { valor: `${horas} h ${String(resto).padStart(2, '0')}`, unidad: '' };
+    // Con las dos unidades escritas: "9 h 00 min" se lee de una, "9h00" hay
+    // que interpretarlo.
+    return { valor: `${horas} h ${String(resto).padStart(2, '0')} min`, unidad: '' };
   }
   return { valor: String(m), unidad: 'min' };
 }
@@ -140,12 +191,7 @@ export type Contexto =
 export function contextoDe(eventos: Evento[], ahora: number): Contexto | null {
   if (eventos.length === 0) return null;
 
-  const enCurso = eventos.find(
-    (e) =>
-      e.hora_fin !== null &&
-      minutosDe(e.hora_inicio) <= ahora &&
-      ahora < minutosDe(e.hora_fin)
-  );
+  const enCurso = eventoEnCurso(eventos, ahora);
   if (enCurso) return { tipo: 'en_curso', evento: enCurso };
 
   const porEmpezar = [...eventos]

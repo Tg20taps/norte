@@ -14,7 +14,7 @@ const GRANDE = 'expandida font-bold leading-[0.85]';
 // horas ("6 h 30") es más largo y además es la fase tranquila, así que va más
 // chico: entra a lo ancho en pantalla angosta y no compite con lo urgente.
 const TAMANO_MINUTOS = 'text-[clamp(5.5rem,33vw,10rem)]';
-const TAMANO_HORAS = 'text-[clamp(3rem,17vw,5.5rem)]';
+const TAMANO_HORAS = 'text-[clamp(2.5rem,13vw,3.75rem)]';
 
 /**
  * El héroe de la pantalla: cuánto falta para salir, no la agenda del día.
@@ -62,6 +62,7 @@ export function CuentaRegresiva({
   }
 
   const tarde = fase === 'pasado';
+  const enCurso = fase === 'en_curso';
   const { valor, unidad } = textoDeEspera(minutos);
 
   // El parpadeo se corta a los 15 min tarde. Después queda naranja fijo: si ya
@@ -76,7 +77,9 @@ export function CuentaRegresiva({
 
   return (
     <section className="py-4">
-      <p className="text-sm text-niebla">{tarde ? 'salí ahora' : 'sales en'}</p>
+      <p className="text-sm text-niebla">
+        {enCurso ? 'termina en' : tarde ? 'salí ahora' : 'sales en'}
+      </p>
 
       <div
         className={`${GRANDE} ${tamano} ${TEXTO_FASE[fase]} transition-colors duration-500 ${
@@ -92,7 +95,9 @@ export function CuentaRegresiva({
 
       <p className="mt-6 flex items-baseline justify-between gap-3">
         <span className="truncate font-semibold text-espuma">{evento.titulo}</span>
-        <span className="shrink-0 text-niebla">{hhmm(evento.hora_inicio)}</span>
+        <span className="shrink-0 text-niebla">
+          {hhmm(enCurso && evento.hora_fin ? evento.hora_fin : evento.hora_inicio)}
+        </span>
       </p>
     </section>
   );
