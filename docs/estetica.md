@@ -49,6 +49,25 @@ Los dos límites del plan siguen en pie y no se negocian en esta pasada:
 
 8. **Los textos tienen que sentirse escritos para una persona**, no generados.
 
+9. **La cuenta regresiva arriba de 60 minutos, en formato de cuenta regresiva.**
+   `1:13` en vez de `73 min`. Hay que evaluar cuál se lee más rápido de reojo:
+   `1:13` es más corto y es la forma en que uno lee un reloj, pero se puede
+   confundir con una hora del día, y `73 min` no deja duda de que es lo que
+   falta.
+   Ojo: hoy el corte está en 90 minutos (`MINUTOS_EN_HORAS` en `lib/cuenta.ts`),
+   así que entre 61 y 90 se muestra en minutos. Si entra este cambio, el umbral
+   baja a 60 y `tramosDeEspera()` deja de tener sentido como está: el formato
+   `1:13` no lleva unidad pegada, que es justo lo que se acaba de resolver. Los
+   dos no pueden convivir; hay que elegir uno.
+
+10. **El número del héroe dentro de un recuadro con marco**, como la pantalla de
+    un reloj despertador LED, en vez de flotando sobre el fondo. Puede ayudar a
+    que se sienta más contenido y menos gigante.
+    Ojo con dos reglas del plan: el marco no puede ser una tarjeta redondeada
+    con sombra gris —eso está prohibido explícitamente— y tiene que seguir
+    ganándole a todo lo demás de la pantalla. Un marco mal calibrado achica el
+    héroe en vez de contenerlo.
+
 ## Cómo se revisa
 
 Las mismas cuatro preguntas del plan, más una quinta para esta pasada:
