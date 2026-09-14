@@ -134,6 +134,11 @@ pasar es que la app crezca de ancho sin que nadie lo haya decidido.
    `bloque_plantilla` + `turno` + `excepcion`, y el cron de las 00:05.
 5. **Rachas.** → llena la sección Rachas. Las dos rutinas con su check diario y
    el contador. Ojo con la distinción `racha` vs `registro` de `CLAUDE.md`.
+
+   > Después del paso 5, hacer una pasada de limpieza: buscar código muerto del
+   > paso 1, lógica de fechas duplicada, componentes que quedaron sin uso, y
+   > dependencias que no se usan. Antes de esa pasada no vale la pena: el
+   > código es muy joven.
 6. **Botón "empecé".** → Hoy. Con timer de 25 min, para RYM Elite y estudio.
 7. **Push de salida.** → Hoy, más la PWA de toda la app. Instalable,
    suscripción, cron cada 5 min.

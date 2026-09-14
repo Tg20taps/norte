@@ -4,6 +4,118 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Paso 4 — Materializar el día — 2026-09-14
+
+Hecho:
+- `db/migrations/002_materializar_dia.sql`: la función `materializar_dia(fecha)` que arma los `evento` de un día mezclando `bloque_plantilla` + `turno` + `excepcion`, y `materializar_proximos(dias)` que corre hoy y los próximos días.
+- `db/migrations/003_cron_materializar.sql`: el cron. Va aparte a propósito, para que si `pg_cron` no está habilitado se caiga solo eso y el materializador quede aplicado igual.
+- **Probado contra un Postgres 16 de verdad**, no solo escrito: levanté una instancia local, corrí `schema.sql` y las tres migraciones, y verifiqué la plantilla por día de la semana, la vigencia, el turno con colación, las dos excepciones, la idempotencia y las dos reglas de abajo.
+
+Decidí (no estaba en el plan):
+- **Columna nueva `evento.origen`** (`'plantilla'`, `'turno'`, `'manual'`, por defecto `'manual'`). Sin esto el materializador no puede distinguir lo que puso él de lo que cargaste vos, y al volver a correr te borraría los eventos sueltos. Las filas que ya existían quedaron en `'manual'`, así que lo que insertaste a mano está a salvo.
+- **Volver a correrla es seguro y no pisa historial.** Borra y rehace solo lo suyo (`origen` en `'plantilla'` o `'turno'`) y **solo si la fila no tiene `arrancado_en`, `completado_en` ni `aviso_salida_enviado_en`**. Un evento que ya arrancaste o completaste se queda como está aunque cambie la plantilla.
+  Consecuencia a tener presente: si editás una plantilla vigente de un día ya materializado y tocado, te quedan las dos filas, la vieja completada y la nueva. Es el precio de no destruir historial, y es justamente por qué `CLAUDE.md` dice que a una plantilla vigente se le cierra la vigencia en vez de editarla.
+- **Un bloque movido se mueve entero.** La `excepcion` con `accion = 'mover'` solo trae `nueva_hora_inicio`, así que `hora_fin` se corre el mismo intervalo y se le respeta la duración. Verificado: RYM de 18:30–19:30 movido a 20:15 queda 20:15–21:15.
+- **Materializa hoy y dos días más, no solo hoy.** La pantalla muestra a qué hora te levantás y salís mañana, y a las 22:00 mañana todavía no existiría. Ese era justamente el agujero de la bisagra.
+- **El cron son dos horarios, 03:05 y 04:05 UTC.** pg_cron corre en UTC y Chile cambia de huso dos veces al año. Según la época, uno de los dos cae a las 00:05 en Chile y el otro es una corrida de más que no molesta, porque la función es idempotente. La fecha se saca con `now() at time zone 'America/Santiago'`, nunca con `current_date`, que en el server es UTC.
+- **El turno se materializa como `tipo = 'trabajo'`, título `Turno`**, y la colación va en el detalle. El lugar ya lo muestra la fila, así que el título no lo repite.
+- El materializador corre como `postgres` desde el cron, que pasa por encima de RLS. **No hizo falta ninguna política de escritura**: siguen existiendo solo las dos de lectura para `anon`.
+
+**Un bug que apareció probando, y que te habría mordido a vos.** `schema.sql` dejó `bloque_plantilla.vigente_desde` con `default current_date`, y `current_date` en el server es **UTC**. Entre las 21:00 y la medianoche en Chile eso ya es mañana, así que una plantilla cargada de noche nacía vigente recién al día siguiente y el día de hoy salía vacío sin explicación. Lo vi de verdad: el domingo materializó cero eventos teniendo dos rutinas cargadas para el domingo. La migración 002 le cambia el default a la fecha de Chile.
+
+Quedan otras cuatro columnas con el mismo `default current_date` en `schema.sql`: `meta.fecha_inicio`, `meta_aporte.fecha`, `movimiento_fijo.vigente_desde` y `movimiento.fecha`. No las toqué porque son de los pasos 8 y 9 y no las usa nadie todavía, **pero hay que arreglarlas en esos pasos o el mismo bug vuelve**, ahí en forma de un aporte o un gasto anotado de noche que cae con fecha de mañana.
+
+**La app no cambió.** `lib/datos.ts` pide las columnas una por una y no incluye `origen`, así que no hay nada que tocar en la interfaz.
+
+Sigue: paso 5 — rachas. Y después del 5, la pasada de limpieza que quedó anotada en `docs/plan.md`.
+
+---
+
+### Pendiente que Matías tiene que hacer a mano
+
+**1. Correr las dos migraciones nuevas**, en orden, en el SQL Editor: primero `db/migrations/002_materializar_dia.sql` entero, después `db/migrations/003_cron_materializar.sql`. Si la 003 falla en la primera línea, hay que habilitar la extensión en Database > Extensions > `pg_cron` y volver a correrla.
+
+**2. Cargar tu horario real como plantilla.** Acá hay un problema que no puedo resolver solo: **no tengo tus horarios de clase**. Lo que sigue tiene tus cuatro ramos de verdad, con código y sala sacados de `schema.sql`, y las rutinas completas — pero **las horas y los días de las clases son de ejemplo y hay que cambiarlos**. Están marcados. `dia_semana`: 1 = lunes, 7 = domingo.
+
+```sql
+-- Rutinas: todos los días. Estas sí van como las tenés.
+insert into bloque_plantilla (tipo, titulo, detalle, dia_semana, hora_inicio, hora_fin, lugar_id)
+select 'rutina', 'Rutina de arranque', 'cama · meditar 15 min · duolingo · comer algo real',
+       d, '07:00', '07:30', l.id
+from generate_series(1, 7) d, lugar l where l.nombre = 'Casa';
+
+insert into bloque_plantilla (tipo, titulo, detalle, dia_semana, hora_inicio, hora_fin, lugar_id)
+select 'rutina', 'Rutina de cierre', 'leer 15 min · ropa lista · escritorio',
+       d, '23:20', '23:50', l.id
+from generate_series(1, 7) d, lugar l where l.nombre = 'Casa';
+
+-- CLASES — CAMBIAR día y hora de las cuatro. Los códigos y salas son los tuyos.
+insert into bloque_plantilla (tipo, titulo, detalle, dia_semana, hora_inicio, hora_fin, lugar_id)
+select 'clase', r.nombre, r.codigo || ' · ' || r.sala, v.dia, v.inicio, v.fin, l.id
+from (values
+  ('MAT6130', 1, time '11:31', time '13:00'),   -- Álgebra Lineal
+  ('SCY1102', 1, time '15:11', time '16:40'),   -- Gestión de Proyectos de Datos
+  ('MLY1101', 3, time '09:10', time '10:40'),   -- Machine Learning
+  ('ADY1104', 4, time '11:31', time '13:00')    -- Visualización de Datos
+) as v(codigo, dia, inicio, fin)
+join ramo r on r.codigo = v.codigo
+cross join lugar l where l.nombre = 'Universidad';
+
+-- Básquet: martes. RYM Elite y estudio: los días que te sirvan.
+insert into bloque_plantilla (tipo, titulo, dia_semana, hora_inicio, hora_fin, lugar_id, obligatorio)
+select 'basquet', 'Básquet', 2, '20:00', '21:30', l.id, true
+from lugar l where l.nombre = 'Cancha';
+
+insert into bloque_plantilla (tipo, titulo, detalle, dia_semana, hora_inicio, hora_fin, lugar_id)
+select 'rym', 'RYM Elite', 'módulo de la semana', d, '18:30', '19:30', l.id
+from unnest(array[1, 3, 5]) d, lugar l where l.nombre = 'Casa';
+```
+
+**3. Cargar los turnos del Walmart** cuando llegue la malla del mes. Uno por fecha:
+
+```sql
+insert into turno (fecha, hora_inicio, hora_fin, colacion_inicio, colacion_fin, lugar_id)
+select v.fecha, v.inicio, v.fin, v.col_ini, v.col_fin, l.id
+from (values
+  (date '2026-09-15', time '16:00', time '22:00', time '18:30', time '19:00'),
+  (date '2026-09-17', time '16:00', time '22:00', time '18:30', time '19:00')
+) as v(fecha, inicio, fin, col_ini, col_fin)
+cross join lugar l where l.nombre = 'Walmart Alerce';
+```
+
+**4. Armar los días de una vez, sin esperar al cron:**
+
+```sql
+select materializar_proximos(2);
+```
+
+Devuelve cuántos eventos creó. Después recargá la app: la pantalla del día y la línea de mañana tienen que llenarse solas.
+
+**5. Borrar los eventos de prueba que insertaste antes**, si te estorban. Los cargados a mano quedaron con `origen = 'manual'` y el materializador no los va a tocar nunca:
+
+```sql
+delete from evento where origen = 'manual';
+```
+
+**6. Comprobar que el cron quedó:**
+
+```sql
+select jobname, schedule, active from cron.job;
+
+-- y mañana, para ver si corrió:
+select jobname, status, start_time from cron.job_run_details
+order by start_time desc limit 10;
+```
+
+**7. Si cambia tu horario** (semestre nuevo, turno nuevo), **nunca edites ni borres una plantilla vigente**: se le cierra la vigencia y se crea otra. Eso mantiene el historial de rachas intacto.
+
+```sql
+update bloque_plantilla set vigente_hasta = current_date where id = <el id viejo>;
+-- y después el insert de la fila nueva, con vigente_desde = current_date + 1
+```
+
+---
+
 ## Héroe tipo despertador, eventos pasados y la bisagra con mañana — 2026-09-14
 
 Hecho:
