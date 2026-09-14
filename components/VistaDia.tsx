@@ -1,25 +1,30 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Bisagra } from './Bisagra';
 import { CuentaRegresiva } from './CuentaRegresiva';
 import { FilaEvento } from './FilaEvento';
 import { LineaDeContexto } from './LineaDeContexto';
+import { proximaCuenta } from '@/lib/cuenta';
 import { minutosAhora } from '@/lib/horas';
 import type { Evento, Lugar } from '@/lib/tipos';
 
 /**
  * Un solo reloj para toda la pantalla.
  *
- * El número grande y el semáforo de cada fila salen de la misma lectura de la
- * hora, así que no pueden discrepar. Arranca en null porque la hora es la del
- * navegador y el primer render tiene que coincidir con el del server.
+ * El número grande, la línea de contexto y el semáforo de cada fila salen de
+ * la misma lectura de la hora, así que no pueden discrepar. Arranca en null
+ * porque la hora es la del navegador y el primer render tiene que coincidir
+ * con el del server.
  */
 export function VistaDia({
   eventos,
+  manana,
   lugares,
   falla,
 }: {
   eventos: Evento[];
+  manana: Evento[];
   lugares: Lugar[];
   falla: boolean;
 }) {
@@ -43,24 +48,28 @@ export function VistaDia({
     );
   }
 
-  // Día vacío de verdad: el estado vacío, sin cuenta regresiva colgando arriba.
-  if (eventos.length === 0) {
+  if (eventos.length === 0 && manana.length === 0) {
     return <p className="mt-6 text-niebla">hoy no hay nada. no es un error.</p>;
   }
 
+  const cuenta = ahora === null ? null : proximaCuenta(eventos, manana, ahora);
   const lugarDe = (id: number | null) => lugares.find((l) => l.id === id) ?? null;
 
   return (
     <>
       <LineaDeContexto eventos={eventos} ahora={ahora} />
 
-      <CuentaRegresiva eventos={eventos} ahora={ahora} />
+      <CuentaRegresiva cuenta={cuenta} ahora={ahora} />
 
-      <ol className="mt-6 space-y-2 border-t border-bruma pt-6">
-        {eventos.map((e) => (
-          <FilaEvento key={e.id} evento={e} lugar={lugarDe(e.lugar_id)} ahora={ahora} />
-        ))}
-      </ol>
+      {eventos.length > 0 ? (
+        <ol className="mt-5 space-y-2 border-t border-bruma pt-5">
+          {eventos.map((e) => (
+            <FilaEvento key={e.id} evento={e} lugar={lugarDe(e.lugar_id)} ahora={ahora} />
+          ))}
+        </ol>
+      ) : null}
+
+      <Bisagra hoy={eventos} manana={manana} />
     </>
   );
 }

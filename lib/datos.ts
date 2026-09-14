@@ -1,4 +1,4 @@
-import { fechaDeHoy } from './horas';
+import { fechaDeHoy, sumarDias } from './horas';
 import { supabase } from './supabase';
 import type { Evento, Lugar } from './tipos';
 
@@ -11,6 +11,8 @@ const COLUMNAS_EVENTO =
 export type Agenda = {
   fecha: string;
   eventos: Evento[];
+  /** Los de mañana: a las 22:00 lo que hace falta es a qué hora sonar la alarma. */
+  manana: Evento[];
   lugares: Lugar[];
   /**
    * No se pudo leer. Es distinto de un día vacío: un día sin eventos es
@@ -20,26 +22,31 @@ export type Agenda = {
   falla: boolean;
 };
 
-/** Los eventos de hoy, materializados, más los lugares para mostrar el destino. */
+/** Los eventos de hoy y de mañana, más los lugares para mostrar el destino. */
 export async function agendaDeHoy(): Promise<Agenda> {
   const fecha = fechaDeHoy();
+  const siguiente = sumarDias(fecha, 1);
   const db = supabase();
-  if (!db) return { fecha, eventos: [], lugares: [], falla: true };
+  if (!db) return { fecha, eventos: [], manana: [], lugares: [], falla: true };
 
-  const [eventos, lugares] = await Promise.all([
-    db.from('evento').select(COLUMNAS_EVENTO).eq('fecha', fecha),
+  // Los dos días en una sola consulta y después se parten acá.
+  const [dias, lugares] = await Promise.all([
+    db.from('evento').select(COLUMNAS_EVENTO).in('fecha', [fecha, siguiente]),
     db.from('lugar').select('id, nombre, minutos_traslado, minutos_margen'),
   ]);
 
-  const error = eventos.error ?? lugares.error;
+  const error = dias.error ?? lugares.error;
   if (error) {
     console.error('No se pudo leer la agenda de', fecha, error);
-    return { fecha, eventos: [], lugares: [], falla: true };
+    return { fecha, eventos: [], manana: [], lugares: [], falla: true };
   }
+
+  const todos = (dias.data ?? []) as Evento[];
 
   return {
     fecha,
-    eventos: (eventos.data ?? []) as Evento[],
+    eventos: todos.filter((e) => e.fecha === fecha),
+    manana: todos.filter((e) => e.fecha === siguiente),
     lugares: (lugares.data ?? []) as Lugar[],
     falla: false,
   };

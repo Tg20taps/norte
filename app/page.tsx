@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 // Sección Hoy, leyendo los eventos de verdad desde Supabase.
 export default async function Hoy() {
-  const { fecha, eventos, lugares, falla } = await agendaDeHoy();
+  const { fecha, eventos, manana, lugares, falla } = await agendaDeHoy();
 
   return (
     <>
@@ -18,7 +18,12 @@ export default async function Hoy() {
         </h1>
       </header>
 
-      <VistaDia eventos={porHoraDeSalida(eventos)} lugares={lugares} falla={falla} />
+      <VistaDia
+        eventos={porHoraDeSalida(eventos)}
+        manana={manana}
+        lugares={lugares}
+        falla={falla}
+      />
     </>
   );
 }

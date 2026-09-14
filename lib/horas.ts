@@ -58,6 +58,12 @@ export function fechaDeHoy(ahora: Date = new Date()): string {
   }).format(ahora);
 }
 
+/** Suma días a una fecha 'YYYY-MM-DD'. Fecha pelada: sin husos de por medio. */
+export function sumarDias(fecha: string, dias: number): string {
+  const [a, m, d] = fecha.split('-').map(Number);
+  return new Date(Date.UTC(a, m - 1, d + dias)).toISOString().slice(0, 10);
+}
+
 /** '2026-09-14' -> 'lunes 14 de septiembre' */
 export function fechaLarga(fecha: string): string {
   const d = new Date(`${fecha}T00:00:00`);

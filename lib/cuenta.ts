@@ -104,9 +104,13 @@ export function eventoEnCurso(eventos: Evento[], ahora: number): Evento | null {
   );
 }
 
-export function proximaCuenta(eventos: Evento[], ahora: number): Cuenta | null {
+export function proximaCuenta(
+  eventos: Evento[],
+  manana: Evento[],
+  ahora: number
+): Cuenta | null {
   const ordenados = porHoraDeSalida(eventos);
-  if (ordenados.length === 0) return null;
+  if (ordenados.length === 0) return primeroDeManana(manana, ahora);
 
   // Candidato 1: la salida del próximo evento que todavía no empezó.
   const proximo = ordenados.find((e) => minutosDe(e.hora_inicio) > ahora);
@@ -135,12 +139,55 @@ export function proximaCuenta(eventos: Evento[], ahora: number): Cuenta | null {
   if (salida && (!fin || salida.minutos <= fin.minutos)) return salida;
   if (fin) return fin;
 
-  // Ni nada por empezar ni nada en curso: el día se terminó.
-  const primero = ordenados[0];
+  // Ni nada por empezar ni nada en curso: el día se terminó y la pantalla
+  // mira al día siguiente, que es justo lo que hace falta a las 22:00.
+  return primeroDeManana(manana, ahora);
+}
+
+/** Lo primero de mañana, para cuando hoy ya no queda nada. */
+function primeroDeManana(manana: Evento[], ahora: number): Cuenta | null {
+  const primero = porHoraDeSalida(manana)[0];
+  if (!primero) return null;
+
   return {
     evento: primero,
     minutos: minutosDe(horaSalida(primero)) + MINUTOS_DEL_DIA - ahora,
     fase: 'manana',
+  };
+}
+
+/**
+ * La bisagra entre los dos días: a qué hora se cierra hoy, a qué hora hay que
+ * levantarse y a qué hora hay que salir. Es lo que uno necesita saber a las
+ * 22:00 para poner la alarma.
+ */
+export type Bisagra = {
+  /** Fin del último evento de hoy. */
+  acuesta: string | null;
+  /** Inicio del primer evento de mañana. */
+  levanta: string | null;
+  /** Salida del primer evento de mañana que tenga traslado. */
+  sale: string | null;
+};
+
+export function bisagra(hoy: Evento[], manana: Evento[]): Bisagra {
+  const fines = hoy
+    .map((e) => e.hora_fin)
+    .filter((f): f is string => f !== null)
+    .sort((a, b) => minutosDe(a) - minutosDe(b));
+
+  const porInicio = [...manana].sort(
+    (a, b) => minutosDe(a.hora_inicio) - minutosDe(b.hora_inicio)
+  );
+
+  // "Sales" es la salida del primer evento que de verdad implica moverse. La
+  // rutina de arranque es en casa: ahí salir y empezar son lo mismo.
+  const conTraslado = porInicio.find((e) => e.minutos_traslado + e.minutos_margen > 0);
+
+  return {
+    acuesta: fines.length > 0 ? fines[fines.length - 1] : null,
+    levanta: porInicio[0]?.hora_inicio ?? null,
+    sale: conTraslado ? horaSalida(conTraslado) : null,
   };
 }
 
@@ -151,16 +198,26 @@ export function proximaCuenta(eventos: Evento[], ahora: number): Cuenta | null {
  * Devuelve el valor y la unidad por separado porque en la pantalla van en
  * tamaños distintos: el valor es el número grande.
  */
-export function textoDeEspera(minutos: number): { valor: string; unidad: string } {
+/** Un número con su unidad pegada, como los dos pares de un reloj despertador. */
+export type Tramo = { valor: string; unidad: string };
+
+/**
+ * Cuánto falta, partido en número y unidad.
+ *
+ * Abajo de 90 min va un solo tramo (`21` `min`). Arriba, dos (`7` `h`,
+ * `30` `min`): `390 min` se lee mal de reojo y `7h30` hay que interpretarlo.
+ * La unidad va aparte porque en pantalla se dibuja chica y pegada al número,
+ * no debajo compitiendo con él.
+ */
+export function tramosDeEspera(minutos: number): Tramo[] {
   const m = Math.abs(minutos);
   if (m > MINUTOS_EN_HORAS) {
-    const horas = Math.floor(m / 60);
-    const resto = m % 60;
-    // Con las dos unidades escritas: "9 h 00 min" se lee de una, "9h00" hay
-    // que interpretarlo.
-    return { valor: `${horas} h ${String(resto).padStart(2, '0')} min`, unidad: '' };
+    return [
+      { valor: String(Math.floor(m / 60)), unidad: 'h' },
+      { valor: String(m % 60).padStart(2, '0'), unidad: 'min' },
+    ];
   }
-  return { valor: String(m), unidad: 'min' };
+  return [{ valor: String(m), unidad: 'min' }];
 }
 
 /**

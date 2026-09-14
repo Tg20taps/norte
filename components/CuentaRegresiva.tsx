@@ -1,61 +1,59 @@
 import { Cifras } from './Cifras';
-import {
-  MINUTOS_DE_PARPADEO,
-  proximaCuenta,
-  TEXTO_FASE,
-  textoDeEspera,
-} from '@/lib/cuenta';
+import { MINUTOS_DE_PARPADEO, TEXTO_FASE, tramosDeEspera, type Cuenta } from '@/lib/cuenta';
 import { hhmm, horaSalida } from '@/lib/horas';
-import type { Evento } from '@/lib/tipos';
 
-const GRANDE = 'expandida font-bold leading-[0.85]';
+const GRANDE = 'expandida font-bold leading-[0.8]';
 
-// Dos tamaños: el número de minutos es el que tiene que gritar. El tiempo en
-// horas ("6 h 30") es más largo y además es la fase tranquila, así que va más
-// chico: entra a lo ancho en pantalla angosta y no compite con lo urgente.
-const TAMANO_MINUTOS = 'text-[clamp(5.5rem,33vw,10rem)]';
-const TAMANO_HORAS = 'text-[clamp(2.5rem,13vw,3.75rem)]';
+// Un solo tramo (`21 min`) puede ser enorme. Dos (`7 h 30 min`) ocupan más a
+// lo ancho, así que el número baja un punto: sigue siendo el héroe, pero entra
+// en un teléfono angosto.
+const UN_TRAMO = 'text-[clamp(5.5rem,33vw,10rem)]';
+const DOS_TRAMOS = 'text-[clamp(3.75rem,26vw,7rem)]';
+const HORA_SUELTA = 'text-[clamp(3rem,17vw,4.5rem)]';
+
+// La unidad va chica y pegada al número, como el "AM" de un despertador.
+const UNIDAD = 'text-lg font-semibold leading-none text-niebla';
 
 /**
- * El héroe de la pantalla: cuánto falta para salir, no la agenda del día.
+ * El héroe: cuánto falta, como un reloj despertador.
  *
- * El reloj lo trae `VistaDia`; acá solo se dibuja. El número va en <Cifras>
- * porque Archivo no trae cifras tabulares y si no, baila al cambiar.
+ * Todo el bloque es una sola pieza y va apretado a propósito: la etiqueta, el
+ * número con su unidad pegada y el nombre del evento. El reloj lo trae
+ * `VistaDia`; acá solo se dibuja.
  */
 export function CuentaRegresiva({
-  eventos,
+  cuenta,
   ahora,
 }: {
-  eventos: Evento[];
+  cuenta: Cuenta | null;
   ahora: number | null;
 }) {
-  const cuenta = ahora === null ? null : proximaCuenta(eventos, ahora);
-
   // Todavía sin la hora del navegador: el hueco del número, en tenue.
-  if (!cuenta) {
+  if (ahora === null) {
     return (
-      <section className="py-4">
-        <p className="text-sm text-niebla">sales en</p>
-        <p className={`${GRANDE} ${TAMANO_HORAS} text-niebla`} aria-hidden>
+      <section className="mt-5 pb-3">
+        <p className="text-sm leading-none text-niebla">sales en</p>
+        <p className={`${GRANDE} ${UN_TRAMO} mt-1 text-niebla`} aria-hidden>
           ··
         </p>
       </section>
     );
   }
 
+  if (!cuenta) return null;
+
   const { evento, minutos, fase } = cuenta;
 
-  // No queda nada por empezar: el número se apaga y la pantalla solo dice qué
-  // sigue y a qué hora hay que salir. No es un error.
+  // No queda nada por empezar hoy: la pantalla mira al día siguiente.
   if (fase === 'manana') {
     return (
-      <section className="py-4">
-        <p className="text-sm text-niebla">nada más hoy</p>
-        <div className="text-niebla">
-          <Cifras valor={horaSalida(evento)} className={`${GRANDE} ${TAMANO_HORAS}`} />
+      <section className="mt-5 pb-3">
+        <p className="text-sm leading-none text-niebla">mañana</p>
+        <div className="mt-1 text-niebla">
+          <Cifras valor={horaSalida(evento)} className={`${GRANDE} ${HORA_SUELTA}`} />
         </div>
-        <p className="mt-4 text-niebla">
-          mañana sales para <span className="text-espuma">{evento.titulo}</span>
+        <p className="mt-1 text-niebla">
+          sales para <span className="text-espuma">{evento.titulo}</span>
         </p>
       </section>
     );
@@ -63,37 +61,36 @@ export function CuentaRegresiva({
 
   const tarde = fase === 'pasado';
   const enCurso = fase === 'en_curso';
-  const { valor, unidad } = textoDeEspera(minutos);
+  const tramos = tramosDeEspera(minutos);
 
-  // El parpadeo se corta a los 15 min tarde. Después queda naranja fijo: si ya
-  // vas media hora tarde, el parpadeo dejó de ser información.
+  // El parpadeo se corta a los 15 min. Después queda naranja fijo: si ya vas
+  // media hora tarde, el parpadeo dejó de ser información.
   const parpadea = tarde && Math.abs(minutos) < MINUTOS_DE_PARPADEO;
-
-  const leyenda = tarde ? (unidad ? `${unidad} tarde` : 'tarde') : unidad;
-
-  // `unidad` vacía significa que el valor ya viene en horas, y ese texto es más
-  // largo que tres cifras.
-  const tamano = unidad ? TAMANO_MINUTOS : TAMANO_HORAS;
+  const tamano = tramos.length > 1 ? DOS_TRAMOS : UN_TRAMO;
 
   return (
-    <section className="py-4">
-      <p className="text-sm text-niebla">
+    <section className="mt-5 pb-3">
+      <p className="text-sm leading-none text-niebla">
         {enCurso ? 'termina en' : tarde ? 'salí ahora' : 'sales en'}
       </p>
 
       <div
-        className={`${GRANDE} ${tamano} ${TEXTO_FASE[fase]} transition-colors duration-500 ${
+        className={`mt-1 flex items-baseline gap-x-3 ${TEXTO_FASE[fase]} transition-colors duration-500 ${
           parpadea ? 'parpadeo' : ''
         }`}
       >
-        <Cifras valor={valor} />
+        {tramos.map((t, i) => (
+          <span key={t.unidad} className="flex items-baseline gap-x-1">
+            <Cifras valor={t.valor} className={`${GRANDE} ${tamano}`} />
+            <span className={UNIDAD}>
+              {t.unidad}
+              {tarde && i === tramos.length - 1 ? ' tarde' : ''}
+            </span>
+          </span>
+        ))}
       </div>
 
-      {/* El que cambia de color es el número. La unidad va siempre en tenue.
-          El espacio duro mantiene la altura cuando el tiempo va en horas. */}
-      <p className="text-lg font-semibold text-niebla">{leyenda || ' '}</p>
-
-      <p className="mt-6 flex items-baseline justify-between gap-3">
+      <p className="mt-1 flex items-baseline justify-between gap-3">
         <span className="truncate font-semibold text-espuma">{evento.titulo}</span>
         <span className="shrink-0 text-niebla">
           {hhmm(enCurso && evento.hora_fin ? evento.hora_fin : evento.hora_inicio)}

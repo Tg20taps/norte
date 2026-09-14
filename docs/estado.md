@@ -4,6 +4,31 @@ Lo último arriba. Toda sesión agrega su bloque antes de cerrar el PR.
 
 ---
 
+## Héroe tipo despertador, eventos pasados y la bisagra con mañana — 2026-09-14
+
+Hecho:
+- **El héroe se rediseñó como un reloj despertador.** El número enorme y la unidad chica pegada al lado (`21` `min`, `6` `h` `00` `min`), no debajo. Todo el bloque —etiqueta, número y nombre del evento— va apretado y se lee como una sola pieza; entre la línea de contexto y el bloque sí hay aire, si no la etiqueta se leía como un renglón más de la frase.
+- **Los eventos que ya pasaron se apagan de verdad**: pierden la banda de fondo (`bg-marea` pasa a `bg-marea/30`) y el contenido baja a 45% de opacidad. Lo que viene tiene cuerpo, lo que pasó se hunde en el fondo. Se distinguen de un vistazo sin leer ninguna hora.
+- **La app ahora lee hoy y mañana**, los dos días en una sola consulta (`.in('fecha', [hoy, mañana])`) que se parte en `lib/datos.ts`.
+- **La bisagra entre los dos días**, en una sola línea debajo de la lista y separada por una regla: `Te acuestas 23:50 · Te levantas 07:00 · Sales 08:00`. Sin banda de fondo y sin etiqueta de sección, porque el sueño no es un evento como los demás.
+- **Cuando hoy ya no queda nada, el héroe mira a mañana de verdad.** Antes daba la vuelta al primer evento de hoy, que con datos falsos colaba y con datos reales era mentira.
+
+Decidí (no estaba en el plan):
+- **Las dos instrucciones se contradecían y gané por la segunda.** La primera pedía el `min` en la línea de abajo; el rediseño pedía la unidad "pequeña y pegada al número, no debajo". Hice lo segundo, que además resuelve el problema de fondo: con la unidad chica al lado, el número entra a lo ancho sin achicarse.
+- **El héroe no se achicó en el caso común.** Un tramo (`21 min`) sigue en 33vw, igual que antes. Dos tramos (`6 h 00 min`) van en 26vw: tres cifras más dos unidades no pueden medir lo mismo que dos cifras en un teléfono de 320 px, es geometría. Venía de 13vw, así que duplicó tamaño. Verificado a 320 y 412 px, sin scroll horizontal en ninguno.
+- **Qué es cada dato de la bisagra**: `Te acuestas` es el fin del último evento de hoy; `Te levantas` es el inicio del primero de mañana; `Sales` es la hora de salida del primer evento de mañana **que tenga traslado**, no del primero a secas —la rutina de arranque es en casa y ahí salir y empezar son lo mismo, no sirve para poner la alarma. Si falta alguno de los tres, ese tramo no aparece en vez de inventarlo.
+- **La bisagra se muestra siempre**, no solo cuando el día terminó. A las 21:39, con el turno todavía corriendo, es justo cuando hace falta.
+- El separador `·` va detrás de cada tramo y no delante: si la línea envuelve a 320 px, el punto queda al final del renglón en vez de colgando al principio del siguiente.
+
+**Ojo, y es importante**: la bisagra y el héroe de mañana **dependen de que mañana esté materializado**. Hasta que exista el cron del paso 4, la tabla `evento` no tiene nada de mañana salvo que lo insertes a mano, así que esa línea va a aparecer incompleta (solo `Te acuestas`) o no aparecer. No está roto: no hay datos.
+
+Sigue: paso 4 — materializar el día desde `bloque_plantilla` + `turno` + `excepcion`, con el cron de las 00:05. Es el que le da de comer a la bisagra.
+
+Pendiente que Matías tiene que hacer a mano:
+- Para ver la bisagra completa antes del paso 4, insertar un par de eventos con la fecha de mañana, igual que los de hoy pero con `+ interval '1 day'` en la fecha.
+
+---
+
 ## Correcciones en la cuenta regresiva — 2026-09-13
 
 Hecho:

@@ -39,22 +39,31 @@ export function FilaEvento({
 
   const fase = ahora === null ? null : faseDeFila(evento, ahora);
 
+  // Ya empezó, o sea que ya no hay nada que hacer al respecto. Se queda en la
+  // lista pero pierde la banda de fondo: lo que viene son bloques con cuerpo,
+  // lo que pasó se hunde en el fondo.
+  const pasado = ahora !== null && fase === null;
+
   return (
-    <li className="flex items-start gap-3 bg-marea px-4 py-4">
+    <li
+      className={`flex items-start gap-3 px-4 py-4 ${
+        pasado ? 'bg-marea/30' : 'bg-marea'
+      }`}
+    >
       <span
         className={`mt-2 size-2 shrink-0 rounded-full ${fase ? FONDO_FASE[fase] : 'bg-bruma'}`}
         title={fase ? NOMBRE_FASE[fase] : 'ya empezó'}
         aria-hidden
       />
 
-      <div className="w-[4.75rem] shrink-0">
+      <div className={`w-[4.75rem] shrink-0 ${pasado ? 'opacity-45' : ''}`}>
         <div className="text-[11px] leading-none text-niebla">
           {sinTraslado ? 'empieza' : 'salí'}
         </div>
         <div className="mt-1 text-2xl font-bold leading-none">{horaSalida(evento)}</div>
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className={`min-w-0 flex-1 ${pasado ? 'opacity-45' : ''}`}>
         <p className="font-semibold leading-tight text-niebla">{evento.titulo}</p>
         <p className="mt-1 text-sm leading-snug text-niebla">{secundaria}</p>
         {evento.detalle ? (
